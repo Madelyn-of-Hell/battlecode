@@ -198,3 +198,9 @@ gradle-app.setting
 .project
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
+
+#Mads
+.idea
+
+client_version.txt
+engine_version.txt
