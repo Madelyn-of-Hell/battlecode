@@ -2,12 +2,12 @@ package examplefuncsplayer.Communication;
 
 import battlecode.common.MapLocation;
 import battlecode.common.Message;
+import examplefuncsplayer.RobotPlayer;
 
 /// An abstract superclass for all types of messages
 public abstract class Communication {
 
     public int sender_id;
-    public int round_sent;
     public MapLocation source_tile;
 
     /// Given the message as an integer and the shared key, returns a communication (child) object
@@ -50,15 +50,15 @@ public abstract class Communication {
         return 1;
     }
     /// Handle an incoming message appropriately. An abstract parent class for children to override
-    public abstract void handle(CommunicationInterface[] interface_array);
+    public abstract void handle(RobotPlayer[] interface_array);
 
     /// Whether the predicate condition has been met. An abstract parent class for children to override
     /// @return The answer, as boolean. r u stupid?
-    public abstract boolean predicate_met(CommunicationInterface[] interface_array);
+    public abstract boolean predicate_met(RobotPlayer[] interface_array);
 
     /// Whether the terminus condition has been met. An abstract parent class for children to override
     /// @return The answer, as boolean. r u stupid?
-    public abstract boolean terminus_met(CommunicationInterface[] interface_array);
+    public abstract boolean terminus_met(RobotPlayer[] interface_array);
     /// Package the message into an integer. An abstract parent class for children to override
     /// @return an int with all data appropriately packaged. Unencrypted.
     public abstract int package_message();

@@ -4,6 +4,9 @@ import battlecode.common.*;
 
 import java.util.Random;
 
+import examplefuncsplayer.Communication.PredicateMessage;
+import examplefuncsplayer.Communication.TerminusMessage;
+
 /**
  * RobotPlayer is the class that describes your main robot strategy.
  * The run() method inside this class is like your main function: this is what we'll call once your robot
@@ -37,6 +40,15 @@ public class RobotPlayer {
         Direction.NORTHWEST,
     };
 
+    public TerminusMessage[]  terminusMessages;
+    public PredicateMessage[] predicateMessages;
+    public int id;
+    public boolean is_king;
+    public RobotProtocol current_protocol;
+    public RobotController rc;
+    public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
+
+    };
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
      * It is like the main function for your robot. If this method returns, the robot dies!
@@ -46,46 +58,11 @@ public class RobotPlayer {
      **/
     @SuppressWarnings("unused")
     public static void run(RobotController rc) throws GameActionException {
-        // Hello world! Standard output is very useful for debugging.
-        // Everything you say here will be directly viewable in your terminal when you run a match!
-        System.out.println("I'm alive");
-
-        // You can also use indicators to save debug notes in replays.
-        rc.setIndicatorString("Hello world!");
+        //Initial Setup
 
         while (true) {
-            // This code runs during the entire lifespan of the robot, which is why it is in an infinite
-            // loop. If we ever leave this loop and return from run(), the robot dies! At the end of the
-            // loop, we call Clock.yield(), signifying that we've done everything we want to do.
-
-            turnCount += 1;  // We have now been alive for one more turn!
-
-            // Try/catch blocks stop unhandled exceptions, which cause your robot to explode.
             try {
-                // The same run() function is called for every robot on your team, even if they are
-                // different types. Here, we separate the control depending on the UnitType, so we can
-                // use different strategies on different robots. If you wish, you are free to rewrite
-                // this into a different control structure!
-
-                // Every 10 turns, print out what type of robot we are.
-                if (turnCount % 100 == 0) {
-                    System.out.println("Turn " + turnCount + ": I am a " + rc.getType().toString());
-                }
-
-                // Try to move forward one step.
-                if (rc.canMoveForward()) {
-                    System.out.println("Turn " + turnCount + ": Trying to move " + rc.getDirection());
-                    rc.moveForward();
-                } else {
-                    System.out.println("Couldn't move forward on turn " + turnCount + " at location " + rc.getLocation() + " facing " + rc.getDirection());
-                    // If we can't move forward, try to turn a random direction.
-                    int randomDirection = rng.nextInt(8);
-                    Direction dir = directions[randomDirection];
-
-                    if (rc.canTurn(dir)) {
-                        rc.turn(dir);
-                    }
-                }
+                throw new GameActionException(GameActionExceptionType.CANT_DO_THAT, "FailoutTest");
             } catch (GameActionException e) {
                 // Oh no! It looks like we did something illegal in the Battlecode world. You should
                 // handle GameActionExceptions judiciously, in case unexpected events occur in the game

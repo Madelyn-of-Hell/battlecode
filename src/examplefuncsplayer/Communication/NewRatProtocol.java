@@ -14,17 +14,17 @@ public class NewRatProtocol extends Communication {
     }
 
     @Override
-    public void handle(CommunicationInterface[] interface_array) {
+    public void handle(RobotPlayer[] interface_array) {
 
     }
 
     @Override
-    public boolean predicate_met(CommunicationInterface[] interface_array) {
+    public boolean predicate_met(RobotPlayer[] interface_array) {
         return true;
     }
 
     @Override
-    public boolean terminus_met(CommunicationInterface[] interface_array) {
+    public boolean terminus_met(RobotPlayer[] interface_array) {
         return false;
     }
 
