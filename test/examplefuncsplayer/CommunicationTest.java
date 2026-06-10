@@ -108,4 +108,55 @@ public class CommunicationTest {
 		assertEquals(self[0], correct_answer[0]);
 	}
 
+	/////////////////////////KingAcknowledgeMessage/////////////////////////
+	@Test
+	public void TestPackageKingAcknowledgeMessage() {
+		final int message_type = KingAcknowledgeMessage.message_id;
+		final int received_message_type = CatWaypointFound.message_id;
+		final int correct_answer = message_type << 27 | received_message_type << 22 | mask(demo_rat_id, 22);
+
+		KingAcknowledgeMessage message = new KingAcknowledgeMessage();
+		message.acknowledged_message_type = received_message_type;
+		message.target_rat_id = demo_rat_id;
+
+		assertEquals(correct_answer, message.package_message());
+	}
+
+	@Test
+	public void TestParseKingAcknowledgeMessage() {
+		final byte message_type = KingAcknowledgeMessage.message_id;
+		final int received_message_type = CatWaypointFound.message_id;
+		final int packaged_message = message_type << 27 | received_message_type << 22 | mask(demo_rat_id, 22);
+		final int encrypted_message = packaged_message ^ shared_mask;
+		final Message message = new Message(encrypted_message, 1, 1, MapLocation.valueOf("1,1"));
+		final KingAcknowledgeMessage correct_answer = new KingAcknowledgeMessage();
+		correct_answer.acknowledged_message_type = received_message_type;
+		correct_answer.target_rat_id = demo_rat_id;
+		correct_answer.sender_id = 1;
+
+
+		Communication output = Communication.parse(message, key);
+		assertEquals(output, correct_answer);
+	}
+
+	@Test
+	public void TestHandleKingAcknowledgeMessageIgnore() {
+		KingAcknowledgeMessage message = new KingAcknowledgeMessage() ;
+		message.target_rat_id = 1;
+		message.acknowledged_message_type = CatWaypointFound.message_id;
+		CommunicationInterface[] self = new CommunicationInterface[]{new CommunicationInterface(100, RobotProtocol.None)};
+		message.handle(self);
+		assertEquals(0, self[0].terminusMessages.length);
+	}
+
+	@Test
+	public void TestHandleKingAcknowledgeMessageAccept() {
+		KingAcknowledgeMessage message = new KingAcknowledgeMessage() ;
+		message.target_rat_id = 100;
+		message.acknowledged_message_type = CatWaypointFound.message_id;
+		CommunicationInterface[] self = new CommunicationInterface[]{new CommunicationInterface(100, RobotProtocol.None)};
+		message.handle(self);
+		assertEquals(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, CatWaypointFound.message_id), self[0].terminusMessages[0]);
+	}
+
 }
