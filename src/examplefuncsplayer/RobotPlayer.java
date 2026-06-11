@@ -6,6 +6,7 @@ import java.util.Random;
 
 import examplefuncsplayer.Communication.PredicateMessage;
 import examplefuncsplayer.Communication.TerminusMessage;
+import examplefuncsplayer.dstar.DstarMap;
 
 /**
  * RobotPlayer is the class that describes your main robot strategy.
@@ -46,6 +47,7 @@ public class RobotPlayer {
     public boolean is_king;
     public RobotProtocol current_protocol;
     public RobotController rc;
+    public DstarMap nav_map;
     public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
 
     };

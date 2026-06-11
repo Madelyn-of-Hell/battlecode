@@ -113,7 +113,8 @@ public class CommunicationTest {
 		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
 				100,
 				RobotProtocol.None,
-				false
+				false,
+				null
 		)};
 		message.handle(self);
 		assertEquals(
@@ -176,7 +177,8 @@ public class CommunicationTest {
 		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
 				100,
 				RobotProtocol.None,
-				false
+				false,
+				null
 		)};
 		message.handle(self);
 		assertEquals(
