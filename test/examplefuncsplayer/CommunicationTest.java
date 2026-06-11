@@ -92,20 +92,33 @@ public class CommunicationTest {
 		NewRatProtocol message = new NewRatProtocol();
 	message.target_rat_id = demo_rat_id;
 	message.prescribed_protocol = RobotProtocol.Gather;
-	CommunicationInterface[] self = new CommunicationInterface[]{new CommunicationInterface(1, RobotProtocol.None)};
+	CommunicationInterface[] self = new CommunicationInterface[]{new CommunicationInterface(
+			1,
+			RobotProtocol.None,
+			false
+	)};
 	message.handle(self);
-	CommunicationInterface[] correct_answer = new CommunicationInterface[]{new CommunicationInterface(1, RobotProtocol.None)};
-	assertEquals(self[0], correct_answer[0]);
+	assertEquals(
+			RobotProtocol.None,
+			self[0].current_protocol
+	);
 	}
+
 	@Test
 	public void TestHandleNewRatProtocolAccept() {
 		NewRatProtocol message = new NewRatProtocol();
-		message.target_rat_id = 1;
+		message.target_rat_id = 100;
 		message.prescribed_protocol = RobotProtocol.Gather;
-		CommunicationInterface[] self = new CommunicationInterface[]{new CommunicationInterface(100, RobotProtocol.None)};
+		CommunicationInterface[] self = new CommunicationInterface[]{new CommunicationInterface(
+				100,
+				RobotProtocol.None,
+				false
+		)};
 		message.handle(self);
-		CommunicationInterface[] correct_answer = new CommunicationInterface[]{new CommunicationInterface(100, RobotProtocol.Gather)};
-		assertEquals(self[0], correct_answer[0]);
+		assertEquals(
+				RobotProtocol.Gather,
+				self[0].current_protocol
+		);
 	}
 
 	/////////////////////////KingAcknowledgeMessage/////////////////////////
@@ -144,7 +157,11 @@ public class CommunicationTest {
 		KingAcknowledgeMessage message = new KingAcknowledgeMessage() ;
 		message.target_rat_id = 1;
 		message.acknowledged_message_type = CatWaypointFound.message_id;
-		CommunicationInterface[] self = new CommunicationInterface[]{new CommunicationInterface(100, RobotProtocol.None)};
+		CommunicationInterface[] self = new CommunicationInterface[]{new CommunicationInterface(
+				100,
+				RobotProtocol.None,
+				false
+		)};
 		message.handle(self);
 		assertEquals(0, self[0].terminusMessages.length);
 	}
@@ -154,9 +171,82 @@ public class CommunicationTest {
 		KingAcknowledgeMessage message = new KingAcknowledgeMessage() ;
 		message.target_rat_id = 100;
 		message.acknowledged_message_type = CatWaypointFound.message_id;
-		CommunicationInterface[] self = new CommunicationInterface[]{new CommunicationInterface(100, RobotProtocol.None)};
+		CommunicationInterface[] self = new CommunicationInterface[]{new CommunicationInterface(
+				100,
+				RobotProtocol.None,
+				false
+		)};
 		message.handle(self);
-		assertEquals(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, CatWaypointFound.message_id), self[0].terminusMessages[0]);
+		assertEquals(
+				new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, CatWaypointFound.message_id),
+				self[0].terminusMessages[0]
+		);
 	}
 
+	////////////////////////NewRatProtocolAcknowledge///////////////////////
+	@Test
+	public void TestPackageNewRatProtocolAcknowledge() {
+		final int message_type = NewRatProtocolAcknowledge.message_id;
+		final RobotProtocol new_protocol = RobotProtocol.Gather;
+		final int correct_answer = message_type << 27 | new_protocol.value << 25 ;
+
+		NewRatProtocolAcknowledge message = new NewRatProtocolAcknowledge();
+		message.protocol = new_protocol;
+
+		assertEquals(correct_answer, message.package_message());
+	}
+
+	@Test
+	public void TestParseNewRatProtocolAcknowledge() {
+		final int message_type = NewRatProtocolAcknowledge.message_id;
+		final RobotProtocol new_protocol = RobotProtocol.Gather;
+		final int packaged_message = message_type << 27 | new_protocol.value << 25;
+		final int encrypted_message = packaged_message ^ shared_mask;
+
+		final Message message = new Message(encrypted_message, 1, 1, MapLocation.valueOf("1,1"));
+		final NewRatProtocolAcknowledge correct_answer = new NewRatProtocolAcknowledge();
+		correct_answer.protocol = new_protocol;
+		correct_answer.sender_id = 1;
+
+
+		Communication output = Communication.parse(message, key);
+		assertEquals(output, correct_answer);
+	}
+
+	@Test
+	public void TestHandleNewRatProtocolAcknowledgeIgnore() {
+		NewRatProtocolAcknowledge message = new NewRatProtocolAcknowledge() ;
+		message.protocol = RobotProtocol.Gather;
+		CommunicationInterface[] self = new CommunicationInterface[]{new CommunicationInterface(
+				100,
+				RobotProtocol.Explore,
+				false
+		)};
+
+		message.handle(self);
+
+		assertEquals(
+				0,
+				self[0].terminusMessages.length
+		);
+	}
+
+	@Test
+	public void TestHandleNewRatProtocolAcknowledgeAccept() {
+		NewRatProtocolAcknowledge message = new NewRatProtocolAcknowledge() ;
+		message.protocol = RobotProtocol.Gather;
+		CommunicationInterface[] self = new CommunicationInterface[]{new CommunicationInterface(
+				100,
+				RobotProtocol.Propagate,
+				true
+		)};
+
+		message.handle(self);
+		assertEquals(
+				new TerminusMessage(TerminusMessageType.NewRatProtocolAcknowledge, RobotProtocol.Gather.value),
+				self[0].terminusMessages[0]
+		);
+	}
+		);
+	}
 }
