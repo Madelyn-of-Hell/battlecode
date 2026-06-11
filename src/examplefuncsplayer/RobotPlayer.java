@@ -40,15 +40,16 @@ public class RobotPlayer {
         Direction.WEST,
         Direction.NORTHWEST,
     };
-
+    static final int cat_waypoint_danger_radius = 4;
     public TerminusMessage[]  terminusMessages;
     public PredicateMessage[] predicateMessages;
     public int id;
     public boolean is_king;
     public RobotProtocol current_protocol;
     public RobotController rc;
+    public MapLocation[] cat_waypoints;
     public DstarMap nav_map;
-    public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
+    public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, int width, int height, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
 
     };
     /**
@@ -85,5 +86,13 @@ public class RobotPlayer {
         }
 
         // Your code should never reach here (unless it's intentional)! Self-destruction imminent...
+    }
+    //TODO: Add Tests
+    public static DstarMap return_cat_waypoint(DstarMap nav_map, MapLocation cat_waypoint) {
+        return nav_map;
+    }
+    //TODO: Add Tests
+    public void add_cat_waypoint(MapLocation cat_waypoint) {
+        this.nav_map = return_cat_waypoint(this.nav_map, cat_waypoint);
     }
 }

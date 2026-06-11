@@ -4,7 +4,9 @@ import static org.junit.Assert.*;
 
 import battlecode.common.MapLocation;
 import battlecode.common.Message;
+import battlecode.common.RobotController;
 import examplefuncsplayer.Communication.*;
+import examplefuncsplayer.dstar.DstarMap;
 import org.junit.Test;
 
 import java.awt.*;
@@ -281,7 +283,52 @@ public class CommunicationTest {
 		assertEquals(correct_answer, output);
 	}
 
-	public void TestHandleCatWaypointFound
+	public void TestHandleCatWaypointFoundIgnore() {
+		CatWaypointFound message = new CatWaypointFound() ;
+		message.waypoint_position = MapLocation.valueOf("40,22");
+		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
+				100,
+				RobotProtocol.None,
+				false,
+				30,
+				30,
+				null
+		)};
+		self[0].cat_waypoints = new MapLocation[]{MapLocation.valueOf("40,22")};
+		message.handle(self);
+
+		assertEquals(
+				new DstarMap(30,30),
+				self[0].nav_map
+		);
+		assertEquals(
+					1,
+				self[0].cat_waypoints.length
+		);
+	}
+	public void TestHandleCatWaypointFoundAccept() {
+		CatWaypointFound message = new CatWaypointFound() ;
+		message.waypoint_position = MapLocation.valueOf("40,22");
+		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
+				100,
+				RobotProtocol.None,
+				false,
+				30,
+				30,
+				null
+		)};
+		message.handle(self);
+
+		DstarMap correct_map = RobotPlayer.return_cat_waypoint(new DstarMap(30,30), MapLocation.valueOf("40,22"));
+		assertEquals(
+				correct_map,
+				self[0].nav_map
+		);
+		assertEquals(
+				1,
+				self[0].cat_waypoints.length
+		);
+	}
 	/////////////////////////////CheeseMineFound////////////////////////////
 	@Test
 	public void TestPackageCheeseMineFound() {
