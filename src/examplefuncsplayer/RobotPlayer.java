@@ -2,11 +2,13 @@ package examplefuncsplayer;
 
 import battlecode.common.*;
 
+import java.util.HashMap;
 import java.util.Random;
 
 import examplefuncsplayer.Communication.PredicateMessage;
 import examplefuncsplayer.Communication.TerminusMessage;
 import examplefuncsplayer.dstar.DstarMap;
+import scala.Int;
 
 /**
  * RobotPlayer is the class that describes your main robot strategy.
@@ -49,6 +51,7 @@ public class RobotPlayer {
     public RobotController rc;
     public MapLocation[] cat_waypoints;
     public MapLocation[] cheese_mines;
+    public HashMap<String, HashMap<Integer, MapLocation>> enemy_rat_kings;
     public DstarMap nav_map;
     public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, int width, int height, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
 

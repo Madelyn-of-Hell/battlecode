@@ -428,6 +428,66 @@ public class CommunicationTest {
 		assertEquals(correct_answer, output);
 	}
 
+	@Test
+	public void TestHandleEnemyRatKingFoundIgnore() {
+		EnemyRatKingFound message = new EnemyRatKingFound();
+		message.king_position = MapLocation.valueOf("40,22");
+		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
+				100,
+				RobotProtocol.None,
+				false,
+				30, 30,
+				null
+		)};
+		self[0].enemy_rat_kings.get("Living").put(demo_rat_id, MapLocation.valueOf("40,22"));
+		message.handle(self);
+
+		assertEquals(
+				1,
+				self[0].enemy_rat_kings.get("Living").size()
+
+		);
+		assertEquals(
+				MapLocation.valueOf("40,22"),
+				self[0].enemy_rat_kings.get("Living").get(demo_rat_id)
+
+		);
+	}
+
+	@Test
+	public void TestHandleEnemyRatKingFoundAdd() {
+		EnemyRatKingFound message = new EnemyRatKingFound();
+		message.king_position = MapLocation.valueOf("40,22");
+		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
+				100,
+				RobotProtocol.None,
+				false,
+				30, 30,
+				null
+		)};
+		message.handle(self);
+
+		assertEquals(
+				1,
+				self[0].enemy_rat_kings.get("Living").size()
+
+		);
+		assertEquals(
+				MapLocation.valueOf("40,22"),
+				self[0].enemy_rat_kings.get("Living").get(demo_rat_id)
+		);
+		message.king_position = MapLocation.valueOf("21,21");
+		message.handle(self);
+		assertEquals(
+				1,
+				self[0].enemy_rat_kings.get("Living").size()
+
+		);
+		assertEquals(
+				MapLocation.valueOf("21,21"),
+				self[0].enemy_rat_kings.get("Living").get(demo_rat_id)
+		);
+	}
 	///////////////HeyYouComeJoinMyRatPackSoThatWeCanGoAttack///////////////
 	@Test
 	public void TestPackageHeyYouComeJoinMyRatPackSoThatWeCanGoAttack() {
