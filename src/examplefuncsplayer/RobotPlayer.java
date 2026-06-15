@@ -48,6 +48,7 @@ public class RobotPlayer {
     public RobotProtocol current_protocol;
     public RobotController rc;
     public MapLocation[] cat_waypoints;
+    public MapLocation[] cheese_mines;
     public DstarMap nav_map;
     public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, int width, int height, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
 

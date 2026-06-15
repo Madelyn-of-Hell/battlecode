@@ -98,6 +98,7 @@ public class CommunicationTest {
 			1,
 			RobotProtocol.None,
 			false,
+			30,30,
 			null
 	)};
 	message.handle(self);
@@ -116,6 +117,7 @@ public class CommunicationTest {
 				100,
 				RobotProtocol.None,
 				false,
+				30,30,
 				null
 		)};
 		message.handle(self);
@@ -165,6 +167,7 @@ public class CommunicationTest {
 				100,
 				RobotProtocol.None,
 				false,
+				30,30,
 				null
 		)};
 		message.handle(self);
@@ -180,6 +183,7 @@ public class CommunicationTest {
 				100,
 				RobotProtocol.None,
 				false,
+				30, 30,
 				null
 		)};
 		message.handle(self);
@@ -227,6 +231,7 @@ public class CommunicationTest {
 				100,
 				RobotProtocol.Explore,
 				false,
+				30, 30,
 				null
 		)};
 
@@ -246,6 +251,7 @@ public class CommunicationTest {
 				100,
 				RobotProtocol.Propagate,
 				true,
+				30,30,
 				null
 		)};
 
@@ -282,7 +288,7 @@ public class CommunicationTest {
 		Communication output = Communication.parse(message, key);
 		assertEquals(correct_answer, output);
 	}
-
+	@Test
 	public void TestHandleCatWaypointFoundIgnore() {
 		CatWaypointFound message = new CatWaypointFound() ;
 		message.waypoint_position = MapLocation.valueOf("40,22");
@@ -306,6 +312,7 @@ public class CommunicationTest {
 				self[0].cat_waypoints.length
 		);
 	}
+	@Test
 	public void TestHandleCatWaypointFoundAccept() {
 		CatWaypointFound message = new CatWaypointFound() ;
 		message.waypoint_position = MapLocation.valueOf("40,22");
@@ -329,6 +336,7 @@ public class CommunicationTest {
 				self[0].cat_waypoints.length
 		);
 	}
+
 	/////////////////////////////CheeseMineFound////////////////////////////
 	@Test
 	public void TestPackageCheeseMineFound() {
@@ -352,7 +360,45 @@ public class CommunicationTest {
 		Communication output = Communication.parse(message, key);
 		assertEquals(correct_answer, output);
 	}
+	@Test
+	public void TestHandleCheeseMineFoundIgnore() {
+		CheeseMineFound message = new CheeseMineFound() ;
+		message.mine_position = MapLocation.valueOf("40,22");
+		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
+				100,
+				RobotProtocol.None,
+				false,
+				30, 30,
+				null
+		)};
+		self[0].cheese_mines = new MapLocation[]{MapLocation.valueOf("40,22")};
+		message.handle(self);
 
+		assertEquals(
+				1,
+				self[0].cheese_mines.length
+		);
+	}
+
+	@Test
+	public void TestHandleCheeseMineFoundAdd() {
+		CheeseMineFound message = new CheeseMineFound() ;
+		message.mine_position = MapLocation.valueOf("40,22");
+		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
+				100,
+				RobotProtocol.None,
+				false,
+				30, 30,
+				null
+		)};
+		self[0].cheese_mines = new MapLocation[]{MapLocation.valueOf("21,21")};
+		message.handle(self);
+
+		assertEquals(
+				2,
+				self[0].cheese_mines.length
+		);
+	}
 	////////////////////////////EnemyRatKingFound///////////////////////////
 	@Test
 	public void TestPackageEnemyRatKingFound() {
