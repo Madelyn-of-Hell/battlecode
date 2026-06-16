@@ -53,6 +53,9 @@ public class RobotPlayer {
     public MapLocation[] cheese_mines;
     public HashMap<String, HashMap<Integer, MapLocation>> enemy_rat_kings;
     public DstarMap nav_map;
+    public int pack_id;
+    public int pack_size;
+    public int[] known_pack_members;
     public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, int width, int height, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
 
     };

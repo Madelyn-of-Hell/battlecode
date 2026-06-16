@@ -504,18 +504,112 @@ public class CommunicationTest {
 		final int message_type = HeyYouComeJoinMyRatPackSoThatWeCanGoAttack.message_id;
 
 		final int pack_size = 20;
-		final int pack_id = ___;
+		final int pack_id = demo_rat_id;
 
-		final int packaged_message = message_type << 27 | mask(param_one, BIT_ALLOTMENT_ONE) << BITSHIFT_ONE | mask(param_two, BIT_ALLOTMENT_TWO) << BITSHIFT_TWO;
+		final int packaged_message = message_type << 27 | mask(pack_size, 8) << 19 | mask(pack_id, 19);
 		final int encrypted_message = packaged_message ^ shared_mask;
 		final Message message = new Message(encrypted_message, 1, 1, MapLocation.valueOf("1,1"));
 
 		final HeyYouComeJoinMyRatPackSoThatWeCanGoAttack correct_answer = new HeyYouComeJoinMyRatPackSoThatWeCanGoAttack();
-		correct_answer.param_one = param_one;
-		correct_answer.param_two = param_two;
+		correct_answer.pack_size = pack_size;
+		correct_answer.pack_id = pack_id;
+		correct_answer.sender_id = 1;
 
 		Communication output = Communication.parse(message, key);
 		assertEquals(correct_answer, output);
+	}
+
+	@Test
+	public void TestHandleHeyYouComeJoinMyRatPackSoThatWeCanGoAttackIgnoreBigger() {
+		HeyYouComeJoinMyRatPackSoThatWeCanGoAttack message = new HeyYouComeJoinMyRatPackSoThatWeCanGoAttack();
+		message.pack_size = 10;
+		message.pack_id = demo_rat_id;
+		message.sender_id = 123456789;
+		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
+				100,
+				RobotProtocol.Attack,
+				false,
+				30, 30,
+				null
+		)};
+		self[0].pack_id = 65434567;
+		self[0].pack_size = 11;
+		message.handle(self);
+
+		assertEquals(
+			65434567,
+			self[0].pack_id
+		);
+		assertEquals(
+			11,
+			self[0].pack_size
+		);
+		assertEquals(
+			new int[]{},
+			self[0].known_pack_members
+		);
+	}
+
+	@Test
+	public void TestHandleHeyYouComeJoinMyRatPackSoThatWeCanGoAttackIgnoreIrrelevant() {
+		HeyYouComeJoinMyRatPackSoThatWeCanGoAttack message = new HeyYouComeJoinMyRatPackSoThatWeCanGoAttack();
+		message.pack_size = 10;
+		message.pack_id = demo_rat_id;
+		message.sender_id = 123456789;
+		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
+				100,
+				RobotProtocol.Gather,
+				false,
+				30, 30,
+				null
+		)};
+		self[0].pack_id = 65434567;
+		self[0].pack_size = 11;
+		message.handle(self);
+
+		assertEquals(
+				65434567,
+				self[0].pack_id
+		);
+		assertEquals(
+				11,
+				self[0].pack_size
+		);
+		assertEquals(
+				new int[]{},
+				self[0].known_pack_members
+		);
+	}
+
+	@Test
+	public void TestHandleHeyYouComeJoinMyRatPackSoThatWeCanGoAttackAccept() {
+		HeyYouComeJoinMyRatPackSoThatWeCanGoAttack message = new HeyYouComeJoinMyRatPackSoThatWeCanGoAttack();
+		message.pack_size = 10;
+		message.pack_id = demo_rat_id;
+		message.sender_id = 123456789;
+		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
+				100,
+				RobotProtocol.Attack,
+				false,
+				30, 30,
+				null
+		)};
+		self[0].pack_id = 65434567;
+		self[0].pack_size = 9;
+		message.handle(self);
+
+		assertEquals(
+				demo_rat_id,
+				self[0].pack_id
+		);
+		assertEquals(
+				10,
+				self[0].pack_size
+		);
+		assertEquals(
+				new int[]{123456789},
+				self[0].known_pack_members
+		);
 	}
 
 	////////////WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack///////////
