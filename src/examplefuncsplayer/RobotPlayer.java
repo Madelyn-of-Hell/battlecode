@@ -5,6 +5,7 @@ import battlecode.common.*;
 import java.util.HashMap;
 import java.util.Random;
 
+import examplefuncsplayer.Communication.Communication;
 import examplefuncsplayer.Communication.PredicateMessage;
 import examplefuncsplayer.Communication.TerminusMessage;
 import examplefuncsplayer.dstar.DstarMap;
@@ -43,8 +44,8 @@ public class RobotPlayer {
         Direction.NORTHWEST,
     };
     static final int cat_waypoint_danger_radius = 4;
-    public TerminusMessage[]  terminusMessages;
-    public PredicateMessage[] predicateMessages;
+    public TerminusMessage[]  terminus_messages;
+    public PredicateMessage[] predicate_messages;
     public int id;
     public boolean is_king;
     public RobotProtocol current_protocol;
@@ -56,6 +57,7 @@ public class RobotPlayer {
     public int pack_id;
     public int pack_size;
     public int[] known_pack_members;
+    public Communication[] queued_messages;
     public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, int width, int height, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
 
     };

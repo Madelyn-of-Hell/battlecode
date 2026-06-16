@@ -4,12 +4,9 @@ import static org.junit.Assert.*;
 
 import battlecode.common.MapLocation;
 import battlecode.common.Message;
-import battlecode.common.RobotController;
 import examplefuncsplayer.Communication.*;
 import examplefuncsplayer.dstar.DstarMap;
 import org.junit.Test;
-
-import java.awt.*;
 
 public class CommunicationTest {
 
@@ -336,7 +333,6 @@ public class CommunicationTest {
 				self[0].cat_waypoints.length
 		);
 	}
-
 	/////////////////////////////CheeseMineFound////////////////////////////
 	@Test
 	public void TestPackageCheeseMineFound() {
@@ -624,6 +620,91 @@ public class CommunicationTest {
 		assertEquals(correct_answer, message.package_message());
 	}
 
+	@Test
+	public void TestParseWaowieYourRatPackIsSoBigIWannaComeWithYouToAttack() {
+		final int message_type = WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack.message_id;
+
+		final int old_pack_id = 123456789;
+		final int new_pack_id = 987654321;
+
+		final int packaged_message = message_type << 27 | mask(old_pack_id, 13) << 14 | mask(new_pack_id, 13) << 1;
+		final int encrypted_message = packaged_message ^ shared_mask;
+		final Message message = new Message(encrypted_message, 1, 1, new MapLocation(1,1));
+
+		final WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack correct_answer = new WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack();
+		correct_answer.old_pack_id = old_pack_id;
+		correct_answer.new_pack_id = new_pack_id;
+
+		Communication output = Communication.parse(message, key);
+		assertEquals(correct_answer, output);
+	}
+
+	@Test
+	public void TestHandleWaowieYourRatPackIsSoBigIWannaComeWithYouToAttackIgnoreIrrelevant() {
+		WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack message = new WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack() ;
+		message.old_pack_id = 123456789;
+		message.new_pack_id = 987654321;
+		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
+				100,
+				RobotProtocol.Gather,
+				false,
+				30,30,
+				null
+		)};
+
+		message.handle(self);
+
+		assertEquals(
+				0,
+				self[0].pack_id
+		);
+	}
+
+	@Test
+	public void TestHandleWaowieYourRatPackIsSoBigIWannaComeWithYouToAttackWelcome() {
+		WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack message = new WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack() ;
+		message.old_pack_id = 123456789;
+		message.new_pack_id = 987654321;
+		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
+				100,
+				RobotProtocol.Attack,
+				false,
+				30,30,
+				null
+		)};
+		self[0].pack_id = message.new_pack_id;
+		message.handle(self);
+
+		assertEquals(
+			message.sender_id,
+			self[0].known_pack_members[0]
+		);
+	}
+
+	@Test
+	public void TestHandleWaowieYourRatPackIsSoBigIWannaComeWithYouToAttackAccept() {
+		WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack message = new WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack() ;
+		message.old_pack_id = 123456789;
+		message.new_pack_id = 987654321;
+		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
+				100,
+				RobotProtocol.Attack,
+				false,
+				30,30,
+				null
+		)};
+		self[0].pack_id = message.old_pack_id;
+		message.handle(self);
+
+		assertEquals(
+				message.new_pack_id,
+				self[0].pack_id
+		);
+		assertEquals(
+				message,
+				self[0].queued_messages[0]
+		);
+	}
 	///////////////////////////RatPackShouldAttack//////////////////////////
 	@Test
 	public void TestPackageRatPackShouldAttack() {
