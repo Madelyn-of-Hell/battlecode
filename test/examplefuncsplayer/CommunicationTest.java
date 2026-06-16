@@ -78,7 +78,7 @@ public class CommunicationTest {
 	final int packaged_message = message_type << 27 | new_protocol.value << 25 | mask(demo_rat_id, 25);
 	final int encrypted_message = packaged_message ^ shared_mask;
 
-	final Message message = new Message(encrypted_message, 1, 1, MapLocation.valueOf("1,1"));
+	final Message message = new Message(encrypted_message, 1, 1, new MapLocation(1,1));
 	final NewRatProtocol correct_answer = new NewRatProtocol();
 	correct_answer.prescribed_protocol = new_protocol;
 	correct_answer.target_rat_id = demo_rat_id;
@@ -147,7 +147,7 @@ public class CommunicationTest {
 		final int received_message_type = CatWaypointFound.message_id;
 		final int packaged_message = message_type << 27 | received_message_type << 22 | mask(demo_rat_id, 22);
 		final int encrypted_message = packaged_message ^ shared_mask;
-		final Message message = new Message(encrypted_message, 1, 1, MapLocation.valueOf("1,1"));
+		final Message message = new Message(encrypted_message, 1, 1, new MapLocation(1,1));
 		final KingAcknowledgeMessage correct_answer = new KingAcknowledgeMessage();
 		correct_answer.acknowledged_message_type = received_message_type;
 		correct_answer.target_rat_id = demo_rat_id;
@@ -213,7 +213,7 @@ public class CommunicationTest {
 		final int packaged_message = message_type << 27 | new_protocol.value << 25;
 		final int encrypted_message = packaged_message ^ shared_mask;
 
-		final Message message = new Message(encrypted_message, 1, 1, MapLocation.valueOf("1,1"));
+		final Message message = new Message(encrypted_message, 1, 1, new MapLocation(1,1));
 		final NewRatProtocolAcknowledge correct_answer = new NewRatProtocolAcknowledge();
 		correct_answer.protocol = new_protocol;
 		correct_answer.sender_id = 1;
@@ -266,7 +266,7 @@ public class CommunicationTest {
 	@Test
 	public void TestPackageCatWaypointFound() {
 		final int message_type = CatWaypointFound.message_id;
-		final MapLocation waypoint_position = MapLocation.valueOf("40,22");
+		final MapLocation waypoint_position = new MapLocation(40,22);
 		final int correct_answer = message_type << 27 | mask(waypoint_position.x, 6) << 21 | mask(waypoint_position.y, 6) << 15;
 		final CatWaypointFound message = new CatWaypointFound();
 		message.waypoint_position = waypoint_position;
@@ -275,11 +275,11 @@ public class CommunicationTest {
 	@Test
 	public void TestParseCatWaypointFound() {
 		final int message_type = CatWaypointFound.message_id;
-		final MapLocation waypoint_position = MapLocation.valueOf("40,22");
+		final MapLocation waypoint_position = new MapLocation(40,22);
 		final int packaged_message = message_type << 27 | mask(waypoint_position.x, 6) << 21 | mask(waypoint_position.y, 6) << 15;
 		final int encrypted_message = packaged_message ^ shared_mask;
 
-		final Message message = new Message(encrypted_message, 1, 1, MapLocation.valueOf("1,1"));
+		final Message message = new Message(encrypted_message, 1, 1, new MapLocation(1,1));
 		final CatWaypointFound correct_answer = new CatWaypointFound();
 		correct_answer.waypoint_position = waypoint_position;
 		correct_answer.sender_id = 1;
@@ -291,7 +291,7 @@ public class CommunicationTest {
 	@Test
 	public void TestHandleCatWaypointFoundIgnore() {
 		CatWaypointFound message = new CatWaypointFound() ;
-		message.waypoint_position = MapLocation.valueOf("40,22");
+		message.waypoint_position = new MapLocation(40,22);
 		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
 				100,
 				RobotProtocol.None,
@@ -300,7 +300,7 @@ public class CommunicationTest {
 				30,
 				null
 		)};
-		self[0].cat_waypoints = new MapLocation[]{MapLocation.valueOf("40,22")};
+		self[0].cat_waypoints = new MapLocation[]{new MapLocation(40,22)};
 		message.handle(self);
 
 		assertEquals(
@@ -315,7 +315,7 @@ public class CommunicationTest {
 	@Test
 	public void TestHandleCatWaypointFoundAccept() {
 		CatWaypointFound message = new CatWaypointFound() ;
-		message.waypoint_position = MapLocation.valueOf("40,22");
+		message.waypoint_position = new MapLocation(40,22);
 		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
 				100,
 				RobotProtocol.None,
@@ -326,7 +326,7 @@ public class CommunicationTest {
 		)};
 		message.handle(self);
 
-		DstarMap correct_map = RobotPlayer.return_cat_waypoint(new DstarMap(30,30), MapLocation.valueOf("40,22"));
+		DstarMap correct_map = RobotPlayer.return_cat_waypoint(new DstarMap(30,30), new MapLocation(40,22));
 		assertEquals(
 				correct_map,
 				self[0].nav_map
@@ -341,7 +341,7 @@ public class CommunicationTest {
 	@Test
 	public void TestPackageCheeseMineFound() {
 		final int message_type = CheeseMineFound.message_id;
-		final MapLocation mine_position = MapLocation.valueOf("40,22");
+		final MapLocation mine_position = new MapLocation(40,22);
 		final int correct_answer = message_type << 27 | mask(mine_position.x, 6) << 21 | mask(mine_position.y, 6) << 15;
 		final CheeseMineFound message = new CheeseMineFound();
 		message.mine_position = mine_position;
@@ -350,10 +350,10 @@ public class CommunicationTest {
 	@Test
 	public void TestParseCheeseMineFound() {
 		final int message_type = CheeseMineFound.message_id;
-		final MapLocation mine_position = MapLocation.valueOf("40,22");
+		final MapLocation mine_position = new MapLocation(40,22);
 		final int packaged_message = message_type << 27 | mask(mine_position.x, 6) << 21 | mask(mine_position.y, 6) << 15;
 		final int encrypted_message = packaged_message ^ shared_mask;
-		final Message message = new Message(encrypted_message, 1, 1, MapLocation.valueOf("1,1"));
+		final Message message = new Message(encrypted_message, 1, 1, new MapLocation(1,1));
 		final CheeseMineFound correct_answer = new CheeseMineFound();
 		correct_answer.mine_position = mine_position;
 
@@ -363,7 +363,7 @@ public class CommunicationTest {
 	@Test
 	public void TestHandleCheeseMineFoundIgnore() {
 		CheeseMineFound message = new CheeseMineFound() ;
-		message.mine_position = MapLocation.valueOf("40,22");
+		message.mine_position = new MapLocation(40,22);
 		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
 				100,
 				RobotProtocol.None,
@@ -371,7 +371,7 @@ public class CommunicationTest {
 				30, 30,
 				null
 		)};
-		self[0].cheese_mines = new MapLocation[]{MapLocation.valueOf("40,22")};
+		self[0].cheese_mines = new MapLocation[]{new MapLocation(40,22)};
 		message.handle(self);
 
 		assertEquals(
@@ -383,7 +383,7 @@ public class CommunicationTest {
 	@Test
 	public void TestHandleCheeseMineFoundAdd() {
 		CheeseMineFound message = new CheeseMineFound() ;
-		message.mine_position = MapLocation.valueOf("40,22");
+		message.mine_position = new MapLocation(40,22);
 		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
 				100,
 				RobotProtocol.None,
@@ -391,7 +391,7 @@ public class CommunicationTest {
 				30, 30,
 				null
 		)};
-		self[0].cheese_mines = new MapLocation[]{MapLocation.valueOf("21,21")};
+		self[0].cheese_mines = new MapLocation[]{new MapLocation(21,21)};
 		message.handle(self);
 
 		assertEquals(
@@ -403,7 +403,7 @@ public class CommunicationTest {
 	@Test
 	public void TestPackageEnemyRatKingFound() {
 		final int message_type = EnemyRatKingFound.message_id;
-		final MapLocation king_position = MapLocation.valueOf("40,22");
+		final MapLocation king_position = new MapLocation(40,22);
 		final int correct_answer = message_type << 27 | mask(king_position.x, 6) << 21 | mask(king_position.y, 6) << 15 | mask(demo_rat_id, 15);
 		final CatWaypointFound message = new CatWaypointFound();
 		message.waypoint_position = king_position;
@@ -413,12 +413,12 @@ public class CommunicationTest {
 	public void TestParseEnemyRatKingFound() {
 		final int message_type = EnemyRatKingFound.message_id;
 
-		final MapLocation king_position = MapLocation.valueOf("40,22");
+		final MapLocation king_position = new MapLocation(40,22);
 		final int king_id = demo_rat_id;
 
 		final int packaged_message = message_type << 27 | mask(king_position.x, 6) << 21 | mask(king_position.y, 6) << 15 | mask(king_id, 15);
 		final int encrypted_message = packaged_message ^ shared_mask;
-		final Message message = new Message(encrypted_message, 1, 1, MapLocation.valueOf("1,1"));
+		final Message message = new Message(encrypted_message, 1, 1, new MapLocation(1,1));
 
 		final EnemyRatKingFound correct_answer = new EnemyRatKingFound();
 		correct_answer.king_position = king_position;
@@ -431,7 +431,7 @@ public class CommunicationTest {
 	@Test
 	public void TestHandleEnemyRatKingFoundIgnore() {
 		EnemyRatKingFound message = new EnemyRatKingFound();
-		message.king_position = MapLocation.valueOf("40,22");
+		message.king_position = new MapLocation(40,22);
 		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
 				100,
 				RobotProtocol.None,
@@ -439,7 +439,7 @@ public class CommunicationTest {
 				30, 30,
 				null
 		)};
-		self[0].enemy_rat_kings.get("Living").put(demo_rat_id, MapLocation.valueOf("40,22"));
+		self[0].enemy_rat_kings.get("Living").put(demo_rat_id, new MapLocation(40,22));
 		message.handle(self);
 
 		assertEquals(
@@ -448,7 +448,7 @@ public class CommunicationTest {
 
 		);
 		assertEquals(
-				MapLocation.valueOf("40,22"),
+				new MapLocation(40,22),
 				self[0].enemy_rat_kings.get("Living").get(demo_rat_id)
 
 		);
@@ -457,7 +457,7 @@ public class CommunicationTest {
 	@Test
 	public void TestHandleEnemyRatKingFoundAdd() {
 		EnemyRatKingFound message = new EnemyRatKingFound();
-		message.king_position = MapLocation.valueOf("40,22");
+		message.king_position = new MapLocation(40,22);
 		RobotPlayer[] self = new RobotPlayer[]{new RobotPlayer(
 				100,
 				RobotProtocol.None,
@@ -473,10 +473,10 @@ public class CommunicationTest {
 
 		);
 		assertEquals(
-				MapLocation.valueOf("40,22"),
+				new MapLocation(40,22),
 				self[0].enemy_rat_kings.get("Living").get(demo_rat_id)
 		);
-		message.king_position = MapLocation.valueOf("21,21");
+		message.king_position = new MapLocation(21,21);
 		message.handle(self);
 		assertEquals(
 				1,
@@ -484,7 +484,7 @@ public class CommunicationTest {
 
 		);
 		assertEquals(
-				MapLocation.valueOf("21,21"),
+				new MapLocation(21,21),
 				self[0].enemy_rat_kings.get("Living").get(demo_rat_id)
 		);
 	}
@@ -508,7 +508,7 @@ public class CommunicationTest {
 
 		final int packaged_message = message_type << 27 | mask(pack_size, 8) << 19 | mask(pack_id, 19);
 		final int encrypted_message = packaged_message ^ shared_mask;
-		final Message message = new Message(encrypted_message, 1, 1, MapLocation.valueOf("1,1"));
+		final Message message = new Message(encrypted_message, 1, 1, new MapLocation(1,1));
 
 		final HeyYouComeJoinMyRatPackSoThatWeCanGoAttack correct_answer = new HeyYouComeJoinMyRatPackSoThatWeCanGoAttack();
 		correct_answer.pack_size = pack_size;
@@ -628,7 +628,7 @@ public class CommunicationTest {
 	@Test
 	public void TestPackageRatPackShouldAttack() {
 		final int message_type = RatPackShouldAttack.message_id;
-		final MapLocation king_position = MapLocation.valueOf("40,22");
+		final MapLocation king_position = new MapLocation(40,22);
 		final int correct_answer = message_type << 27 | mask(king_position.x, 6) << 21 | mask(king_position.y, 6) << 15 | mask(demo_rat_id, 15);
 		final RatPackShouldAttack message = new RatPackShouldAttack();
 		message.victim_pos = king_position;
@@ -639,7 +639,7 @@ public class CommunicationTest {
 	@Test
 	public void TestPackageRatPackHasNewKingToAttack() {
 		final int message_type = RatPackHasNewKingToAttack.message_id;
-		final MapLocation king_position = MapLocation.valueOf("40,22");
+		final MapLocation king_position = new MapLocation(40,22);
 		final int correct_answer = message_type << 27 | mask(king_position.x, 6) << 21 | mask(king_position.y, 6) << 15 | mask(demo_rat_id, 15);
 		final RatPackHasNewKingToAttack message = new RatPackHasNewKingToAttack();
 		message.new_king_loc = king_position;
@@ -659,7 +659,7 @@ public class CommunicationTest {
 	@Test
 	public void TestPackageRatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs() {
 		final int message_type = RatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs.message_id;
-		final MapLocation king_position = MapLocation.valueOf("40,22");
+		final MapLocation king_position = new MapLocation(40,22);
 		final int correct_answer = message_type << 27 | mask(king_position.x, 6) << 21 | mask(king_position.y, 6) << 15 | mask(demo_rat_id, 15);
 		final RatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs message = new RatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs();
 		message.corpse_pos = king_position;
@@ -682,7 +682,7 @@ public class CommunicationTest {
 	@Test
 	public void TestPackageRatPackReassemble() {
 		final int message_type = RatPackReassemble.message_id;
-		final MapLocation king_position = MapLocation.valueOf("40,22");
+		final MapLocation king_position = new MapLocation(40,22);
 		final int correct_answer = message_type << 27 | mask(king_position.x, 6) << 21 | mask(king_position.y, 6) << 15 | mask(demo_rat_id, 15);
 		final RatPackReassemble message = new RatPackReassemble();
 		message.victim_pos = king_position;
@@ -698,7 +698,7 @@ public class CommunicationTest {
 
 		final int packaged_message = message_type << 27 | mask(param_one, BIT_ALLOTMENT_ONE) << BITSHIFT_ONE | mask(param_two., BIT_ALLOTMENT_TWO) << BITSHIFT_TWO;
 		final int encrypted_message = packaged_message ^ shared_mask;
-		final Message message = new Message(encrypted_message, 1, 1, MapLocation.valueOf("1,1"));
+		final Message message = new Message(encrypted_message, 1, 1, new MapLocation(1,1));
 
 		final MESSAGETYPE correct_answer = new MESSAGETYPE();
 		correct_answer.param_one = param_one;
