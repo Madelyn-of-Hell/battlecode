@@ -10,7 +10,11 @@ public class RatPackReassemble extends Communication {
     public int victim_id;
 
     public RatPackReassemble(int decryptedMessage) {
-        super();
+        int pos_x = mask(decryptedMessage >>> 21, 6);
+        int pos_y = mask(decryptedMessage >>> 15, 6);
+        int id = mask(decryptedMessage, 15);
+        this.victim_pos = new MapLocation(pos_x, pos_y);
+        this.victim_id = id;
     }
 
 

@@ -5,11 +5,12 @@ import examplefuncsplayer.RobotPlayer;
 public class KingAcknowledgeMessage extends Communication {
     public static final int message_id = 1;
 
-    public int acknowledged_message_type;
+    public int acknowledged_message_type; // just the normie id of the message
     public int target_rat_id;
 
     public KingAcknowledgeMessage(int decryptedMessage) {
-        super();
+        this.acknowledged_message_type = mask(decryptedMessage >>> 22, 5);
+        this.target_rat_id = mask(decryptedMessage, 22);
     }
 
 

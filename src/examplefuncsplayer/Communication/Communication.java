@@ -33,7 +33,7 @@ public abstract class Communication {
             case 8 -> new RatPackShouldAttack(decrypted_message);
             case 9 -> new RatPackReassemble(decrypted_message);
             case 10 -> new WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack(decrypted_message);
-            case 11 -> new HeyYouComeJoinMyRatPackSoThatWeCanGoAttack(decrypted_message);
+            case 11 -> new HeyYouComeJoinMyRatPackSoThatWeCanGoAttack(decrypted_message, raw_message.getSenderID());
             case 12 -> new EnemyRatKingFound(decrypted_message);
             case 13 -> new CheeseMineFound(decrypted_message);
             case 14 -> new CatWaypointFound(decrypted_message);

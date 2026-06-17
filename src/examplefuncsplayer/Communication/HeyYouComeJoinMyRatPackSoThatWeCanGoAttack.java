@@ -9,8 +9,10 @@ public class HeyYouComeJoinMyRatPackSoThatWeCanGoAttack extends Communication {
     public int pack_id;
     public int sender_id;
 
-    public HeyYouComeJoinMyRatPackSoThatWeCanGoAttack(int decryptedMessage) {
-        super();
+    public HeyYouComeJoinMyRatPackSoThatWeCanGoAttack(int decryptedMessage, int sender_id) {
+        this.pack_size = mask(decryptedMessage >>> 18, 8);
+        this.pack_id = mask(decryptedMessage, 18);
+        this.sender_id = sender_id;
     }
 
 

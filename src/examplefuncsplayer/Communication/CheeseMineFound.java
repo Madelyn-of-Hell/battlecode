@@ -9,7 +9,9 @@ public class CheeseMineFound extends Communication {
     public MapLocation mine_position;
 
     public CheeseMineFound(int decryptedMessage) {
-        super();
+        int pos_x = mask(decryptedMessage >>> 21, 6);
+        int pos_y = mask(decryptedMessage >>> 15, 6);
+        this.mine_position = new MapLocation(pos_x, pos_y);
     }
 
     @Override

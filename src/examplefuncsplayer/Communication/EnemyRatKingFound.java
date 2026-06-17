@@ -10,7 +10,11 @@ public class EnemyRatKingFound extends Communication {
     public int king_id;
 
     public EnemyRatKingFound(int decryptedMessage) {
-        super();
+        int pos_x = mask(decryptedMessage >>> 21, 6);
+        int pos_y = mask(decryptedMessage >>> 15, 6);
+        int id = mask(decryptedMessage, 15);
+        this.king_position = new MapLocation(pos_x, pos_y);
+        this.king_id = id;
     }
 
 

@@ -44,14 +44,14 @@ public class RobotPlayer {
         Direction.NORTHWEST,
     };
     static final int cat_waypoint_danger_radius = 4;
-    public TerminusMessage[]  terminus_messages;
-    public PredicateMessage[] predicate_messages;
+    public LinkedList<TerminusMessage>  terminus_messages;
+    public LinkedList<PredicateMessage> predicate_messages;
     public int id;
     public boolean is_king;
     public RobotProtocol current_protocol;
     public RobotController rc;
-    public MapLocation[] cat_waypoints;
-    public MapLocation[] cheese_mines;
+    public LinkedList<MapLocation> cat_waypoints;
+    public LinkedList<MapLocation> cheese_mines;
     public HashMap<String, HashMap<Integer, MapLocation>> enemy_rat_kings;
     public DstarMap nav_map;
     public int pack_id;
@@ -61,7 +61,12 @@ public class RobotPlayer {
     public int shared_key;
 
     public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, int width, int height, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
-
+        this.id = id;
+        this.is_king = is_king;
+        this.current_protocol = start_protocol;
+        this.rc = rc;
+        this.nav_map = new DstarMap(width, height);
+        this.queued_messages = new LinkedList<>();
     };
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.

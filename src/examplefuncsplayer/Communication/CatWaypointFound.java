@@ -10,7 +10,9 @@ public class CatWaypointFound extends Communication {
     public MapLocation waypoint_position;
 
     public CatWaypointFound(int decryptedMessage) {
-        super();
+        int pos_x = mask(decryptedMessage >>> 21, 6);
+        int pos_y = mask(decryptedMessage >>> 15, 6);
+        this.waypoint_position = new MapLocation(pos_x, pos_y);
     }
 
     @Override

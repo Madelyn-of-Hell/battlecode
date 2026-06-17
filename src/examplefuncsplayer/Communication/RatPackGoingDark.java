@@ -8,7 +8,7 @@ public class RatPackGoingDark extends Communication {
     public int pack_id;
 
     public RatPackGoingDark(int decryptedMessage) {
-        super();
+        this.pack_id = mask(decryptedMessage, 27);
     }
 
 

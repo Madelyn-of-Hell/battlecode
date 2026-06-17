@@ -9,7 +9,11 @@ public class RatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs extends Communi
     public int corpse_id;
 
     public RatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs(int decryptedMessage) {
-        super();
+        int pos_x = mask(decryptedMessage >>> 21, 6);
+        int pos_y = mask(decryptedMessage >>> 15, 6);
+        int id = mask(decryptedMessage, 15);
+        this.corpse_pos = new MapLocation(pos_x, pos_y);
+        this.corpse_id = id;
     }
 
 
