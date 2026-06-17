@@ -2,8 +2,7 @@ package examplefuncsplayer;
 
 import battlecode.common.*;
 
-import java.util.HashMap;
-import java.util.Random;
+import java.util.*;
 
 import battlecode.schema.RobotType;
 import examplefuncsplayer.Communication.Communication;
@@ -58,7 +57,9 @@ public class RobotPlayer {
     public int pack_id;
     public int pack_size;
     public int[] known_pack_members;
-    public Communication[] queued_messages;
+    public List<Communication> queued_messages;
+    public int shared_key;
+
     public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, int width, int height, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
 
     };
@@ -80,6 +81,13 @@ public class RobotPlayer {
                 rc.getMapHeight(),
                 rc
         )};
+        if (self[0].is_king) {
+            self[0].current_protocol = RobotProtocol.Propagate;
+            self[0].shared_key = Communication.create_key();
+            self[0].rc.writeSharedArray(0, self[0].shared_key);
+        } else {
+            self[0].shared_key = rc.readSharedArray(0);
+        }
 
         while (true) {
             try {
@@ -122,6 +130,31 @@ public class RobotPlayer {
     }
 
     private void handle_outgoing_communication() {
+        for (Communication message : this.queued_messages) {
+            if (message.terminus_met(new RobotPlayer[]{this})) {
+                this.queued_messages.remove(message);
+            }
+        }
+
+        this.queued_messages.sort(new Comparator<Communication>() {
+            @Override
+            public int compare(Communication o1, Communication o2) {
+                if (o1.message_id < o2.message_id) {
+                    return -1;
+                }
+                else if (o1.message_id > o2.message_id) {
+                    return 1;
+                }
+                return 0;
+            }
+        });
+
+        for (Communication message : this.queued_messages) {
+            if (message.predicate_met(new RobotPlayer[]{this})) {
+                this.rc.squeak(message.render(new RobotPlayer[]{this}));
+                break;
+            }
+        }
     }
 
     private void gather() {

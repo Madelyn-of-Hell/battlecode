@@ -4,10 +4,13 @@ import battlecode.common.MapLocation;
 import battlecode.common.Message;
 import examplefuncsplayer.RobotPlayer;
 
+import java.util.Random;
+
 /// An abstract superclass for all types of messages
 public abstract class Communication {
 
     public int sender_id;
+    public static int message_id;
     public MapLocation source_tile;
 
     /// Given the message as an integer and the shared key, returns a communication (child) object
@@ -46,8 +49,7 @@ public abstract class Communication {
     /// Create a shared Key
     /// @return a 10-bit randomly generated integer for the King to broadcast to the SharedArrayBuffer
     public static int create_key() {
-        byte_mask((byte) 0b01101010);
-        return 1;
+        return new Random().nextInt(1024);
     }
     /// Handle an incoming message appropriately. An abstract parent class for children to override
     public abstract void handle(RobotPlayer[] interface_array);
@@ -63,5 +65,8 @@ public abstract class Communication {
     /// @return an int with all data appropriately packaged. Unencrypted.
     public abstract int package_message();
 
+    public int render(RobotPlayer[] interface_array) {
+        return encrypt(this.package_message(), interface_array[0].shared_key);
+    }
 }
 
