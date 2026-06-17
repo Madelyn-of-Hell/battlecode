@@ -5,6 +5,7 @@ import battlecode.common.*;
 import java.util.HashMap;
 import java.util.Random;
 
+import battlecode.schema.RobotType;
 import examplefuncsplayer.Communication.Communication;
 import examplefuncsplayer.Communication.PredicateMessage;
 import examplefuncsplayer.Communication.TerminusMessage;
@@ -71,24 +72,47 @@ public class RobotPlayer {
     @SuppressWarnings("unused")
     public static void run(RobotController rc) throws GameActionException {
         //Initial Setup
+        RobotPlayer[] self = new RobotPlayer[]{ new RobotPlayer(
+                rc.getID(),
+                RobotProtocol.None,
+                rc.getType() == UnitType.RAT_KING,
+                rc.getMapWidth(),
+                rc.getMapHeight(),
+                rc
+        )};
 
         while (true) {
             try {
-                throw new GameActionException(GameActionExceptionType.CANT_DO_THAT, "FailoutTest");
-            } catch (GameActionException e) {
-                // Oh no! It looks like we did something illegal in the Battlecode world. You should
-                // handle GameActionExceptions judiciously, in case unexpected events occur in the game
-                // world. Remember, uncaught exceptions cause your robot to explode!
-                System.out.println("GameActionException");
-                e.printStackTrace();
-            } catch (Exception e) {
-                // Oh no! It looks like our code tried to do something bad. This isn't a
-                // GameActionException, so it's more likely to be a bug in our code.
-                System.out.println("Exception");
-                e.printStackTrace();
+                self[0].handle_incoming_communication();
+
+                switch (self[0].current_protocol) {
+                    case Explore: {
+                        self[0].explore();
+                    }
+                    case Gather: {
+                        self[0].gather();
+                    }
+                    case Attack: {
+                        self[0].attack();
+                    }
+                    case Propagate: {
+                        self[0].propagate();
+                    }
+                    case Conserve:{
+                        self[0].conserve();
+                    }
+                    case None: {
+
+                    }
+                }
+                self[0].handle_outgoing_communication();
+//            } catch (GameActionException e) {
+//                System.out.println("GameActionException");
+//                e.printStackTrace();
+//            } catch (Exception e) {
+//                System.out.println("Exception");
+//                e.printStackTrace();
             } finally {
-                // Signify we've done everything we want to do, thereby ending our turn.
-                // This will make our code wait until the next turn, and then perform this loop again.
                 Clock.yield();
             }
             // End of loop: go back to the top. Clock.yield() has ended, so it's time for another turn!
@@ -96,6 +120,29 @@ public class RobotPlayer {
 
         // Your code should never reach here (unless it's intentional)! Self-destruction imminent...
     }
+
+    private void handle_outgoing_communication() {
+    }
+
+    private void gather() {
+    }
+
+    private void attack() {
+    }
+
+    private void propagate() {
+    }
+
+    private void conserve() {
+    }
+
+    private void explore() {
+    }
+
+    public void handle_incoming_communication() {
+
+    }
+
     //TODO: Add Tests
     public static DstarMap return_cat_waypoint(DstarMap nav_map, MapLocation cat_waypoint) {
         return nav_map;
