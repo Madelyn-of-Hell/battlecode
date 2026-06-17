@@ -8,14 +8,10 @@ public class WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack extends Communica
     public int old_pack_id;
     public int new_pack_id;
     public int sender_id;
-    public WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack() {
+    public WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack(int decrypted_message) {
 
     }
 
-    @Override
-    Communication _sub_parse(int message_data) {
-        return null;
-    }
 
     @Override
     public void handle(RobotPlayer[] interface_array) {

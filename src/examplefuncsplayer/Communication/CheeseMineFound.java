@@ -1,15 +1,15 @@
 package examplefuncsplayer.Communication;
 
 import battlecode.common.MapLocation;
+import examplefuncsplayer.RobotPlayer;
 
 public class CheeseMineFound extends Communication {
     public static final int message_id = 12;
 
     public MapLocation mine_position;
 
-    @Override
-    Communication _sub_parse(int message_data) {
-        return null;
+    public CheeseMineFound(int decryptedMessage) {
+        super();
     }
 
     @Override

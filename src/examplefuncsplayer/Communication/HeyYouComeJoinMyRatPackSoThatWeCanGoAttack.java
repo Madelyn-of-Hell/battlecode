@@ -9,10 +9,10 @@ public class HeyYouComeJoinMyRatPackSoThatWeCanGoAttack extends Communication {
     public int pack_id;
     public int sender_id;
 
-    @Override
-    Communication _sub_parse(int message_data) {
-        return null;
+    public HeyYouComeJoinMyRatPackSoThatWeCanGoAttack(int decryptedMessage) {
+        super();
     }
+
 
     @Override
     public void handle(RobotPlayer[] interface_array) {

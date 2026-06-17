@@ -8,10 +8,10 @@ public class KingAcknowledgeMessage extends Communication {
     public int acknowledged_message_type;
     public int target_rat_id;
 
-    @Override
-    Communication _sub_parse(int message_data) {
-        return null;
+    public KingAcknowledgeMessage(int decryptedMessage) {
+        super();
     }
+
 
     @Override
     public void handle(RobotPlayer[] interface_array) {

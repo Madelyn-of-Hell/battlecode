@@ -1,14 +1,13 @@
 package examplefuncsplayer.Communication;
 
 import examplefuncsplayer.RobotPlayer;
-import examplefuncsplayer.RobotProtocol;
 
-public class NewRatProtocolAcknowledge extends Communication {
-    public static final int message_id = 2;
+public class RatPackVolunteerToGoBackInsteadOfAttack extends Communication {
+    public static final int message_id = 4;
 
-    public RobotProtocol protocol;
+    public int pack_id;
 
-    public NewRatProtocolAcknowledge(int decryptedMessage) {
+    public RatPackVolunteerToGoBackInsteadOfAttack(int decryptedMessage) {
         super();
     }
 

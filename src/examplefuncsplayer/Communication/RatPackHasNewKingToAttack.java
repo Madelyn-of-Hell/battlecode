@@ -1,14 +1,15 @@
 package examplefuncsplayer.Communication;
 
+import battlecode.common.MapLocation;
 import examplefuncsplayer.RobotPlayer;
-import examplefuncsplayer.RobotProtocol;
 
-public class NewRatProtocolAcknowledge extends Communication {
-    public static final int message_id = 2;
+public class RatPackHasNewKingToAttack extends Communication {
+    public static final int message_id = 5;
 
-    public RobotProtocol protocol;
+    public MapLocation new_king_loc;
+    public int pack_id;
 
-    public NewRatProtocolAcknowledge(int decryptedMessage) {
+    public RatPackHasNewKingToAttack(int decryptedMessage) {
         super();
     }
 

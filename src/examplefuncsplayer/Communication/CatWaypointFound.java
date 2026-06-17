@@ -3,16 +3,15 @@ package examplefuncsplayer.Communication;
 import battlecode.common.MapLocation;
 import examplefuncsplayer.RobotPlayer;
 
-public class EnemyRatKingFound extends Communication {
-    public static final int message_id = 11;
+import java.util.Arrays;
 
-    public MapLocation king_position;
-    public int king_id;
+public class CatWaypointFound extends Communication {
+    public static final int message_id = 13;
+    public MapLocation waypoint_position;
 
-    public EnemyRatKingFound(int decryptedMessage) {
+    public CatWaypointFound(int decryptedMessage) {
         super();
     }
-
 
     @Override
     public void handle(RobotPlayer[] interface_array) {
@@ -27,6 +26,9 @@ public class EnemyRatKingFound extends Communication {
     @Override
     public boolean terminus_met(RobotPlayer[] interface_array) {
         return false;
+//        return Arrays.stream(interface_array[0].terminusMessages).anyMatch(
+//            terminusMessage -> terminusMessage.type == TerminusMessageType.KingAcknowledgeMessage
+//        );
     }
 
     @Override

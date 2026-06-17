@@ -1,5 +1,6 @@
 package examplefuncsplayer.Communication;
 
+import examplefuncsplayer.RobotPlayer;
 import examplefuncsplayer.RobotProtocol;
 
 public class NewRatProtocol extends Communication {
@@ -8,10 +9,11 @@ public class NewRatProtocol extends Communication {
     public int target_rat_id;
     public RobotProtocol prescribed_protocol;
 
-    @Override
-    Communication _sub_parse(int message_data) {
-        return null;
+    public NewRatProtocol(int decryptedMessage) {
+        super();
     }
+
+
 
     @Override
     public void handle(RobotPlayer[] interface_array) {

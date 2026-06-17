@@ -1,14 +1,15 @@
 package examplefuncsplayer.Communication;
 
+import battlecode.common.MapLocation;
 import examplefuncsplayer.RobotPlayer;
-import examplefuncsplayer.RobotProtocol;
 
-public class NewRatProtocolAcknowledge extends Communication {
-    public static final int message_id = 2;
+public class RatPackReassemble extends Communication {
+    public static final int message_id = 8;
 
-    public RobotProtocol protocol;
+    public MapLocation victim_pos;
+    public int victim_id;
 
-    public NewRatProtocolAcknowledge(int decryptedMessage) {
+    public RatPackReassemble(int decryptedMessage) {
         super();
     }
 
@@ -25,7 +26,7 @@ public class NewRatProtocolAcknowledge extends Communication {
 
     @Override
     public boolean terminus_met(RobotPlayer[] interface_array) {
-        return true;
+        return false;
     }
 
     @Override
