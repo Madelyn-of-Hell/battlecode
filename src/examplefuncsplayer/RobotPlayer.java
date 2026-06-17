@@ -71,7 +71,7 @@ public class RobotPlayer {
      *            information on its current status. Essentially your portal to interacting with the world.
      **/
     @SuppressWarnings("unused")
-    public static void run(RobotController rc) throws GameActionException {
+    public static void run(RobotController rc) {
         //Initial Setup
         RobotPlayer[] self = new RobotPlayer[]{ new RobotPlayer(
                 rc.getID(),
@@ -84,46 +84,50 @@ public class RobotPlayer {
         if (self[0].is_king) {
             self[0].current_protocol = RobotProtocol.Propagate;
             self[0].shared_key = Communication.create_key();
-            self[0].rc.writeSharedArray(0, self[0].shared_key);
+            try {
+                self[0].rc.writeSharedArray(0, self[0].shared_key);
+            } catch (GameActionException e) {
+                // There is NO reason either of these should ever occur, but I don't want to include throws error on the function because I'll forget about it for something important.
+                System.out.print("Couldn't add the shared key to the array because ");
+                System.out.println(e.getMessage());
+            }
         } else {
-            self[0].shared_key = rc.readSharedArray(0);
+            try {
+                self[0].shared_key = rc.readSharedArray(0);
+            } catch (GameActionException e) {
+                // There is NO reason either of these should ever occur, but I don't want to include throws error on the function because I'll forget about it for something important.
+                System.out.print("Couldn't read the shared key from the array because ");
+                System.out.println(e.getMessage());
+            }
         }
 
         while (true) {
-            try {
-                self[0].handle_incoming_communication();
+            self[0].handle_incoming_communication();
 
-                switch (self[0].current_protocol) {
-                    case Explore: {
-                        self[0].explore();
-                    }
-                    case Gather: {
-                        self[0].gather();
-                    }
-                    case Attack: {
-                        self[0].attack();
-                    }
-                    case Propagate: {
-                        self[0].propagate();
-                    }
-                    case Conserve:{
-                        self[0].conserve();
-                    }
-                    case None: {
-
-                    }
+            switch (self[0].current_protocol) {
+                case Explore: {
+                    self[0].explore();
                 }
-                self[0].handle_outgoing_communication();
-//            } catch (GameActionException e) {
-//                System.out.println("GameActionException");
-//                e.printStackTrace();
-//            } catch (Exception e) {
-//                System.out.println("Exception");
-//                e.printStackTrace();
-            } finally {
-                Clock.yield();
+                case Gather: {
+                    self[0].gather();
+                }
+                case Attack: {
+                    self[0].attack();
+                }
+                case Propagate: {
+                    self[0].propagate();
+                }
+                case Conserve:{
+                    self[0].conserve();
+                }
+                case None: {
+
+                }
             }
-            // End of loop: go back to the top. Clock.yield() has ended, so it's time for another turn!
+            self[0].handle_outgoing_communication();
+
+            //Turn OVER
+            Clock.yield();
         }
 
         // Your code should never reach here (unless it's intentional)! Self-destruction imminent...
