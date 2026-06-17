@@ -4,6 +4,8 @@ import battlecode.common.MapLocation;
 import battlecode.common.Message;
 import examplefuncsplayer.RobotPlayer;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 
 /// An abstract superclass for all types of messages
@@ -15,9 +17,9 @@ public abstract class Communication {
 
     /// Given the message as an integer and the shared key, returns a communication (child) object
     /// @param raw_message The message object, as pulled from ReadSqueaks
-    /// @param shared_key The shared key, as pulled from the SharedBufferArray.
+    /// @param self a reference to the robot player (stored as array because that's how you do references in java lol)
     /// @return A fully populated child object of Communication
-    public static Communication parse(Message raw_message, byte shared_key) {
+    public static Communication parse(Message raw_message, RobotPlayer[] self) {
         return new CatWaypointFound();
     }
 

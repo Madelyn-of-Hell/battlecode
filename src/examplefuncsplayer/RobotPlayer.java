@@ -57,7 +57,7 @@ public class RobotPlayer {
     public int pack_id;
     public int pack_size;
     public int[] known_pack_members;
-    public List<Communication> queued_messages;
+    public LinkedList<Communication> queued_messages;
     public int shared_key;
 
     public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, int width, int height, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
@@ -132,7 +132,7 @@ public class RobotPlayer {
 
         // Your code should never reach here (unless it's intentional)! Self-destruction imminent...
     }
-
+    // TODO: Add Tests
     private void handle_outgoing_communication() {
         for (Communication message : this.queued_messages) {
             if (message.terminus_met(new RobotPlayer[]{this})) {
@@ -160,24 +160,27 @@ public class RobotPlayer {
             }
         }
     }
-
+    // TODO: Add Tests
     private void gather() {
     }
-
+    // TODO: Add Tests
     private void attack() {
     }
-
+    // TODO: Add Tests
     private void propagate() {
     }
-
+    // TODO: Add Tests
     private void conserve() {
     }
-
+    // TODO: Add Tests
     private void explore() {
     }
-
+    // TODO: Add Tests
     public void handle_incoming_communication() {
-
+        for (Message message : this.rc.readSqueaks(-1)) {
+            Communication comm = Communication.parse(message, new RobotPlayer[]{this});
+            comm.handle(new RobotPlayer[]{this});
+        }
     }
 
     //TODO: Add Tests
