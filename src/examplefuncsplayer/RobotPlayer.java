@@ -9,7 +9,6 @@ import examplefuncsplayer.Communication.Communication;
 import examplefuncsplayer.Communication.PredicateMessage;
 import examplefuncsplayer.Communication.TerminusMessage;
 import examplefuncsplayer.dstar.DstarMap;
-import scala.Int;
 
 /**
  * RobotPlayer is the class that describes your main robot strategy.
@@ -59,6 +58,7 @@ public class RobotPlayer {
     public int[] known_pack_members;
     public LinkedList<Communication> queued_messages;
     public int shared_key;
+    public int[] shared_array_mirror = new int[64];
 
     public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, int width, int height, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
         this.id = id;
@@ -137,25 +137,22 @@ public class RobotPlayer {
 
         // Your code should never reach here (unless it's intentional)! Self-destruction imminent...
     }
+
+
     // TODO: Add Tests
     private void handle_outgoing_communication() {
-        for (Communication message : this.queued_messages) {
-            if (message.terminus_met(new RobotPlayer[]{this})) {
-                this.queued_messages.remove(message);
-            }
-        }
+        this.queued_messages.removeIf(
+                message -> message.terminus_met(new RobotPlayer[]{this})
+        ); // I gotta admit, Jetbrains' Java linter is kinda popping off with these recommendations
 
-        this.queued_messages.sort(new Comparator<Communication>() {
-            @Override
-            public int compare(Communication o1, Communication o2) {
-                if (o1.message_id < o2.message_id) {
-                    return -1;
-                }
-                else if (o1.message_id > o2.message_id) {
-                    return 1;
-                }
-                return 0;
+        this.queued_messages.sort((o1, o2) -> {
+            if (o1.message_id < o2.message_id) {
+                return -1;
             }
+            else if (o1.message_id > o2.message_id) {
+                return 1;
+            }
+            return 0;
         });
 
         for (Communication message : this.queued_messages) {
@@ -194,6 +191,85 @@ public class RobotPlayer {
     }
     //TODO: Add Tests
     public void add_cat_waypoint(MapLocation cat_waypoint) {
+        this.cat_waypoints.add(cat_waypoint);
         this.nav_map = return_cat_waypoint(this.nav_map, cat_waypoint);
+        if (this.is_king) {
+            try {
+                this.broadcast_cat_waypoint(cat_waypoint);
+            } catch (NoneException e) {
+                System.out.println(e.message); // if all the spots are full (something that will likely never happen) there's kinda nothing to do so we just keep on chugging
+            }
+        }
+    }
+    public void add_cheese_come(MapLocation cheese_mine) {
+        this.cat_waypoints.add(cheese_mine);
+        if (this.is_king) {
+            try {
+                this.broadcast_cheese_mine(cheese_mine);
+            } catch (NoneException e) {
+                System.out.println(e.message); // if all the spots are full (something that will likely never happen) there's kinda nothing to do so we just keep on chugging
+            }
+        }
+    }
+    public void broadcast_cat_waypoint(MapLocation cat_waypoint) throws NoneException {
+        int first_free_index = this.first_free_index(11, 26);
+        int compressed_coordinate = this.compressed_coordinate(cat_waypoint);
+        this.shared_array_mirror[first_free_index] = compressed_coordinate;
+        try {
+            this.rc.writeSharedArray(first_free_index, compressed_coordinate);
+        } catch (GameActionException e) {
+            // This should NEVER occur if I manage to properly implement the budget-conscious system.
+            System.out.println(e);
+        }
+    }
+
+    public void broadcast_cheese_mine(MapLocation cheese_mine) throws NoneException {
+        int first_free_index = this.first_free_index(38, 27);
+        int compressed_coordinate = this.compressed_coordinate(cheese_mine);
+        this.shared_array_mirror[first_free_index] = compressed_coordinate;
+        try {
+            this.rc.writeSharedArray(first_free_index, compressed_coordinate);
+        } catch (GameActionException e) {
+            // This should NEVER occur if I manage to properly implement the budget-conscious system.
+            System.out.println(e);
+        }
+    }
+
+    public void broadcast_enemy_king(MapLocation cheese_mine) throws NoneException {
+        int first_free_index = this.first_free_index(6, 5);
+        int compressed_coordinate = this.compressed_coordinate(cheese_mine);
+        this.shared_array_mirror[first_free_index] = compressed_coordinate;
+        try {
+            this.rc.writeSharedArray(first_free_index, compressed_coordinate);
+        } catch (GameActionException e) {
+            // This should NEVER occur if I manage to properly implement the budget-conscious system.
+            System.out.println(e);
+        }
+    }
+
+    public void broadcast_friendly_king(MapLocation cheese_mine) throws NoneException {
+        int first_free_index = this.first_free_index(1, 5);
+        int compressed_coordinate = this.compressed_coordinate(cheese_mine);
+        this.shared_array_mirror[first_free_index] = compressed_coordinate;
+        try {
+            this.rc.writeSharedArray(first_free_index, compressed_coordinate);
+        } catch (GameActionException e) {
+            // This should NEVER occur if I manage to properly implement the budget-conscious system.
+            System.out.println(e);
+        }
+    }
+
+    private int compressed_coordinate(MapLocation catWaypoint) {
+        // I shouldn't *need* a mask here since the largest map is 60 and thus the largest point is 6 bits long before shift but 'what could possibly go wrong' is the worst reason not to use protection.
+        return Communication.mask(catWaypoint.x >>> 1,5) << 5 | Communication.mask(catWaypoint.y >>> 1,5);
+    }
+
+    public int first_free_index(int offset, int limit) throws NoneException {
+        for (int i = offset; i < offset + limit; i++) {
+            if (this.shared_array_mirror[i] == 0) {
+                return i;
+            }
+        }
+        throw new NoneException("No free index found");
     }
 }

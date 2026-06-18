@@ -12,7 +12,10 @@ public class KingAcknowledgeMessage extends Communication {
         this.acknowledged_message_type = mask(decryptedMessage >>> 22, 5);
         this.target_rat_id = mask(decryptedMessage, 22);
     }
-
+    public KingAcknowledgeMessage(int message_type, int target_rat_id) {
+        this.acknowledged_message_type = message_type;
+        this.target_rat_id = target_rat_id;
+    }
 
     @Override
     public void handle(RobotPlayer[] interface_array) {

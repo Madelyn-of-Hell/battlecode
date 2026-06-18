@@ -16,25 +16,24 @@ public class CatWaypointFound extends Communication {
     }
 
     @Override
-    public void handle(RobotPlayer[] interface_array) {
-
+    public void handle(RobotPlayer[] robot) {
+        if (!robot[0].cat_waypoints.contains(this.waypoint_position)) {
+            robot[0].add_cat_waypoint(this.waypoint_position);
+        }
     }
 
     @Override
-    public boolean predicate_met(RobotPlayer[] interface_array) {
+    public boolean predicate_met(RobotPlayer[] robot) {
         return true;
     }
 
     @Override
-    public boolean terminus_met(RobotPlayer[] interface_array) {
-        return false;
-//        return Arrays.stream(interface_array[0].terminusMessages).anyMatch(
-//            terminusMessage -> terminusMessage.type == TerminusMessageType.KingAcknowledgeMessage
-//        );
+    public boolean terminus_met(RobotPlayer[] robot) {
+        return robot[0].terminus_messages.contains(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, message_id));
     }
 
     @Override
     public int package_message() {
-        return 0;
+        return message_id << 27 | mask(waypoint_position.x, 6)  << 21 | mask(waypoint_position.y, 6) << 15;
     }
 }
