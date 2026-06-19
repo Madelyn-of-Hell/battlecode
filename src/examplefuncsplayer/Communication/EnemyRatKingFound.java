@@ -5,6 +5,7 @@ import examplefuncsplayer.EnemyRatKingPosition;
 import examplefuncsplayer.RobotPlayer;
 
 import java.util.Optional;
+import java.util.Set;
 
 public class EnemyRatKingFound extends Communication {
     public static final int message_id = 11;
@@ -24,18 +25,27 @@ public class EnemyRatKingFound extends Communication {
 
     @Override
     public void handle(RobotPlayer[] robot) {
-        Optional<Integer> match_id = robot[0].enemy_rat_kings.keySet().stream().map(val -> compare_id(val, king_id)).findFirst();
+        Optional<Integer> match_id = this.find_id(robot[0].enemy_rat_kings.keySet());
+
         if (match_id.isEmpty()) {
             robot[0].add_enemy_rat_king(this.king_position, this.king_id);
         } else {
             robot[0].add_enemy_rat_king(this.king_position, match_id.get());
         }
         if (robot[0].is_king) {
-            robot[0].queued_messages.add(new KingAcknowledgeMessage(message_id, this.sender_id, robot[0].id));
+            robot[0].queue_message(new KingAcknowledgeMessage(message_id, this.sender_id, robot[0].id));
         }
 
     }
-
+    // Holy jeepers creepers batman I spent like 40 minutes trying to do this inline and it was so painful i had to make it its own method. Im SURE it's not that complicated; it'd be easy as anything in rust, and I suspect the only reason I can't do it in java is because I'm new to java but 🤷‍♀️
+    private Optional<Integer> find_id(Set<Integer> ids) {
+        for (Integer id : ids) {
+            if (compare_id(id, this.king_id)) {
+                return Optional.of(id);
+            }
+        }
+        return Optional.empty();
+    }
     @Override
     public boolean predicate_met(RobotPlayer[] robot) {
         return true;

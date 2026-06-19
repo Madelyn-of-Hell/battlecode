@@ -21,8 +21,8 @@ public class KingAcknowledgeMessage extends Communication {
 
     @Override
     public void handle(RobotPlayer[] robot) {
-        if (compare_id(robot[0].id, this.target_rat_id).isPresent()) {
-            robot[0].queue_terminus(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, acknowledged_message_type);
+        if (compare_id(robot[0].id, this.target_rat_id)) {
+            robot[0].queue_terminus(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, acknowledged_message_type));
         }
     }
 
