@@ -93,5 +93,15 @@ public abstract class Communication {
         int shaped_mask = mask_32 >>> (32-places); // The difference between a signed and unsigned bitshift kept me here from hours and I want you to know that I Suffer For My Craft
         return value & shaped_mask;
     }
+    public static int compare_id(int id1, int id2) {
+        // This is gross. However, I have no information as to a better approach
+        int id1_masked = mask(id1, Integer.toBinaryString(id2).length());
+        int id2_masked = mask(id2, Integer.toBinaryString(id1).length());
+        if (id1_masked == id2_masked) {
+            return id1_masked;
+        } else {
+            return 0;
+        }
+    }
 }
 

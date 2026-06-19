@@ -50,7 +50,8 @@ public class RobotPlayer {
     public RobotController rc;
     public LinkedList<MapLocation> cat_waypoints;
     public LinkedList<MapLocation> cheese_mines;
-    public HashMap<String, HashMap<Integer, MapLocation>> enemy_rat_kings;
+    public HashMap<Integer, EnemyRatKingPosition> enemy_rat_kings;
+
     public DstarMap nav_map;
     public int pack_id;
     public int pack_size;
@@ -202,6 +203,15 @@ public class RobotPlayer {
             System.out.println(this.broadcast_cheese_mine(cheese_mine).message);
         }
     }
+    public void add_enemy_rat_king(MapLocation king_pos, int king_id) {
+        // apparently .equals works with null values so im safe to not check first if it exists
+        boolean has_changed = (Objects.equals(this.enemy_rat_kings.get(id), new EnemyRatKingPosition(king_pos, king_id, EnemyRatKingPosition.LifeStatus.Alive)));
+        this.enemy_rat_kings.put(king_id, new EnemyRatKingPosition(king_pos, king_id, EnemyRatKingPosition.LifeStatus.Alive));
+        if (this.is_king && has_changed) {
+            System.out.println(this.broadcast_enemy_king(king_pos).message);
+        }
+    }
+
     public Result broadcast_cat_waypoint(MapLocation cat_waypoint) {
         Optional<Integer> first_free_index = this.first_free_index(11, 26);
         if (first_free_index.isPresent()) {

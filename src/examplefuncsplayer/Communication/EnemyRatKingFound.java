@@ -1,7 +1,10 @@
 package examplefuncsplayer.Communication;
 
 import battlecode.common.MapLocation;
+import examplefuncsplayer.EnemyRatKingPosition;
 import examplefuncsplayer.RobotPlayer;
+
+import java.util.Optional;
 
 public class EnemyRatKingFound extends Communication {
     public static final int message_id = 11;
@@ -21,6 +24,15 @@ public class EnemyRatKingFound extends Communication {
 
     @Override
     public void handle(RobotPlayer[] robot) {
+        Optional<Integer> match_id = robot[0].enemy_rat_kings.keySet().stream().map(val -> compare_id(val, king_id)).findFirst();
+        if (match_id.isEmpty()) {
+            robot[0].add_enemy_rat_king(this.king_position, this.king_id);
+        } else {
+            robot[0].add_enemy_rat_king(this.king_position, match_id.get());
+        }
+        if (robot[0].is_king) {
+            robot[0].queued_messages.add(new KingAcknowledgeMessage(message_id, this.sender_id, robot[0].id));
+        }
 
     }
 
