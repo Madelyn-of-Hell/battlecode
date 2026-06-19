@@ -305,6 +305,9 @@ public class RobotPlayer {
     public void queue_message(Communication message) {
         this.queued_messages.add(message);
     }
+    public void queue_terminus(TerminusMessage message) {
+        this.terminus_messages.add(message);
+    }
 
     public void join_pack(int pack_id) {
         this.queue_message( new WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack(this.pack_id, pack_id, this.id));

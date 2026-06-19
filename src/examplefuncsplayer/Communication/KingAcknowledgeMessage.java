@@ -20,22 +20,24 @@ public class KingAcknowledgeMessage extends Communication {
     }
 
     @Override
-    public void handle(RobotPlayer[] interface_array) {
-
+    public void handle(RobotPlayer[] robot) {
+        if (compare_id(robot[0].id, this.target_rat_id).isPresent()) {
+            robot[0].queue_terminus(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, acknowledged_message_type);
+        }
     }
 
     @Override
-    public boolean predicate_met(RobotPlayer[] interface_array) {
+    public boolean predicate_met(RobotPlayer[] robot) {
         return true;
     }
 
     @Override
-    public boolean terminus_met(RobotPlayer[] interface_array) {
+    public boolean terminus_met(RobotPlayer[] robot) {
         return true;
     }
 
     @Override
     public int package_message() {
-        return 0;
+        return message_id << 27 | this.acknowledged_message_type << 22 | Communication.mask(this.target_rat_id, 22);
     }
 }
