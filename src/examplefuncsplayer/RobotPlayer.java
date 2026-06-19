@@ -193,69 +193,85 @@ public class RobotPlayer {
         this.cat_waypoints.add(cat_waypoint);
         this.nav_map = return_cat_waypoint(this.nav_map, cat_waypoint);
         if (this.is_king) {
-            try {
-                this.broadcast_cat_waypoint(cat_waypoint);
-            } catch (NoneException e) {
-                System.out.println(e.message); // if all the spots are full (something that will likely never happen) there's kinda nothing to do so we just keep on chugging
-            }
+            System.out.println(this.broadcast_cat_waypoint(cat_waypoint).message);
         }
     }
     public void add_cheese_mine(MapLocation cheese_mine) {
         this.cat_waypoints.add(cheese_mine);
         if (this.is_king) {
+            System.out.println(this.broadcast_cheese_mine(cheese_mine).message);
+        }
+    }
+    public Result broadcast_cat_waypoint(MapLocation cat_waypoint) {
+        Optional<Integer> first_free_index = this.first_free_index(11, 26);
+        if (first_free_index.isPresent()) {
+            int ffi = first_free_index.get();
+            int compressed_coordinate = this.compressed_coordinate(cat_waypoint);
             try {
-                this.broadcast_cheese_mine(cheese_mine);
-            } catch (NoneException e) {
-                System.out.println(e.message); // if all the spots are full (something that will likely never happen) there's kinda nothing to do so we just keep on chugging
+                this.rc.writeSharedArray(ffi, compressed_coordinate);
+                this.shared_array_mirror[ffi] = compressed_coordinate;
+            } catch (GameActionException e) {
+                // This should NEVER occur if I manage to properly implement the budget-conscious system.
+                System.out.println(e);
+                return Result.fail("Somehow failed to write to the shared array...");
+
             }
         }
-    }
-    public void broadcast_cat_waypoint(MapLocation cat_waypoint) throws NoneException {
-        int first_free_index = this.first_free_index(11, 26);
-        int compressed_coordinate = this.compressed_coordinate(cat_waypoint);
-        this.shared_array_mirror[first_free_index] = compressed_coordinate;
-        try {
-            this.rc.writeSharedArray(first_free_index, compressed_coordinate);
-        } catch (GameActionException e) {
-            // This should NEVER occur if I manage to properly implement the budget-conscious system.
-            System.out.println(e);
-        }
+        return Result.fail("No free spots in shared array...");
     }
 
-    public void broadcast_cheese_mine(MapLocation cheese_mine) throws NoneException {
-        int first_free_index = this.first_free_index(38, 27);
-        int compressed_coordinate = this.compressed_coordinate(cheese_mine);
-        this.shared_array_mirror[first_free_index] = compressed_coordinate;
-        try {
-            this.rc.writeSharedArray(first_free_index, compressed_coordinate);
-        } catch (GameActionException e) {
-            // This should NEVER occur if I manage to properly implement the budget-conscious system.
-            System.out.println(e);
+    public Result broadcast_cheese_mine(MapLocation cheese_mine) {
+        Optional<Integer> first_free_index = this.first_free_index(38, 27);
+        if (first_free_index.isPresent()) {
+            int ffi = first_free_index.get();
+            int compressed_coordinate = this.compressed_coordinate(cheese_mine);
+            try {
+                this.rc.writeSharedArray(ffi, compressed_coordinate);
+                this.shared_array_mirror[ffi] = compressed_coordinate;
+            } catch (GameActionException e) {
+                // This should NEVER occur if I manage to properly implement the budget-conscious system.
+                System.out.println(e);
+                return Result.fail("Somehow failed to write to the shared array...");
+
+            }
         }
+        return Result.fail("No free spots in shared array...");
     }
 
-    public void broadcast_enemy_king(MapLocation cheese_mine) throws NoneException {
-        int first_free_index = this.first_free_index(6, 5);
-        int compressed_coordinate = this.compressed_coordinate(cheese_mine);
-        this.shared_array_mirror[first_free_index] = compressed_coordinate;
-        try {
-            this.rc.writeSharedArray(first_free_index, compressed_coordinate);
-        } catch (GameActionException e) {
-            // This should NEVER occur if I manage to properly implement the budget-conscious system.
-            System.out.println(e);
+    public Result broadcast_enemy_king(MapLocation cheese_mine) {
+        Optional<Integer> first_free_index = this.first_free_index(6, 5);
+        if (first_free_index.isPresent()) {
+            int ffi = first_free_index.get();
+            int compressed_coordinate = this.compressed_coordinate(cheese_mine);
+            try {
+                this.rc.writeSharedArray(ffi, compressed_coordinate);
+                this.shared_array_mirror[ffi] = compressed_coordinate;
+            } catch (GameActionException e) {
+                // This should NEVER occur if I manage to properly implement the budget-conscious system.
+                System.out.println(e);
+                return Result.fail("Somehow failed to write to the shared array...");
+
+            }
         }
+        return Result.fail("No free spots in shared array...");
     }
 
-    public void broadcast_friendly_king(MapLocation cheese_mine) throws NoneException {
-        int first_free_index = this.first_free_index(1, 5);
-        int compressed_coordinate = this.compressed_coordinate(cheese_mine);
-        this.shared_array_mirror[first_free_index] = compressed_coordinate;
-        try {
-            this.rc.writeSharedArray(first_free_index, compressed_coordinate);
-        } catch (GameActionException e) {
-            // This should NEVER occur if I manage to properly implement the budget-conscious system.
-            System.out.println(e);
+    public Result broadcast_friendly_king(MapLocation cheese_mine) {
+        Optional<Integer> first_free_index = this.first_free_index(1, 5);
+        if (first_free_index.isPresent()) {
+            int ffi = first_free_index.get();
+            int compressed_coordinate = this.compressed_coordinate(cheese_mine);
+            try {
+                this.rc.writeSharedArray(ffi, compressed_coordinate);
+                this.shared_array_mirror[ffi] = compressed_coordinate;
+                return Result.ok();
+            } catch (GameActionException e) {
+                // This should NEVER occur if I manage to properly implement the budget-conscious system.
+                System.out.println(e);
+                return Result.fail("Somehow failed to write to the shared array...");
+            }
         }
+        return Result.fail("No free spots in shared array...");
     }
 
     private int compressed_coordinate(MapLocation catWaypoint) {
@@ -263,12 +279,12 @@ public class RobotPlayer {
         return Communication.mask(catWaypoint.x >>> 1,5) << 5 | Communication.mask(catWaypoint.y >>> 1,5);
     }
 
-    public int first_free_index(int offset, int limit) throws NoneException {
+    public Optional<Integer> first_free_index(int offset, int limit) {
         for (int i = offset; i < offset + limit; i++) {
             if (this.shared_array_mirror[i] == 0) {
-                return i;
+                return Optional.of(i);
             }
         }
-        throw new NoneException("No free index found");
+        return Optional.empty();
     }
 }
