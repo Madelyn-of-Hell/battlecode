@@ -21,7 +21,7 @@ public class CheeseMineFound extends Communication {
             robot[0].add_cheese_mine(this.mine_position);
         }
         if (robot[0].is_king) {
-            robot[0].queued_messages.add(new KingAcknowledgeMessage(message_id, robot[0].id, this.sender_id));
+            robot[0].queued_messages.add(new KingAcknowledgeMessage(message_id, this.sender_id, robot[0].id));
         }
     }
 
