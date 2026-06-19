@@ -4,7 +4,6 @@ import battlecode.common.*;
 
 import java.util.*;
 
-import battlecode.schema.RobotType;
 import examplefuncsplayer.Communication.Communication;
 import examplefuncsplayer.Communication.PredicateMessage;
 import examplefuncsplayer.Communication.TerminusMessage;
@@ -201,7 +200,7 @@ public class RobotPlayer {
             }
         }
     }
-    public void add_cheese_come(MapLocation cheese_mine) {
+    public void add_cheese_mine(MapLocation cheese_mine) {
         this.cat_waypoints.add(cheese_mine);
         if (this.is_king) {
             try {
