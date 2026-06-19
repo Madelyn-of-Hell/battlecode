@@ -13,6 +13,11 @@ public class WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack extends Communica
         this.new_pack_id = mask(decrypted_message, 13);
         this.sender_id = sender_id;
     }
+    public WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack(int old_pack_id, int new_pack_id, int sender_id) {
+        this.old_pack_id = old_pack_id;
+        this.new_pack_id = new_pack_id;
+        this.sender_id = sender_id;
+    }
 
 
     @Override

@@ -7,6 +7,7 @@ import java.util.*;
 import examplefuncsplayer.Communication.Communication;
 import examplefuncsplayer.Communication.PredicateMessage;
 import examplefuncsplayer.Communication.TerminusMessage;
+import examplefuncsplayer.Communication.WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack;
 import examplefuncsplayer.dstar.DstarMap;
 
 /**
@@ -29,6 +30,9 @@ public class RobotPlayer {
      * we get the same sequence of numbers every time this code is run. This is very useful for debugging!
      */
     static final Random rng = new Random(6147);
+
+    // Subject to a lottttttttt of changes (probably) (if i get time to tweak stuff)
+    public static final int PACK_ATTACK_SIZE = 10;
 
     /** Array containing all the possible movement directions. */
     static final Direction[] directions = {
@@ -296,5 +300,14 @@ public class RobotPlayer {
             }
         }
         return Optional.empty();
+    }
+
+    public void queue_message(Communication message) {
+        this.queued_messages.add(message);
+    }
+
+    public void join_pack(int pack_id) {
+        this.queue_message( new WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack(this.pack_id, pack_id, this.id));
+        this.pack_id = pack_id;
     }
 }
