@@ -8,9 +8,10 @@ public class WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack extends Communica
     public int old_pack_id;
     public int new_pack_id;
     public int sender_id;
-    public WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack(int decrypted_message) {
+    public WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack(int decrypted_message, int sender_id) {
         this.old_pack_id = mask(decrypted_message >>> 13, 13);
         this.new_pack_id = mask(decrypted_message, 13);
+        this.sender_id = sender_id;
     }
 
 

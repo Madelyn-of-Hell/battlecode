@@ -8,13 +8,15 @@ public class KingAcknowledgeMessage extends Communication {
     public int acknowledged_message_type; // just the normie id of the message
     public int target_rat_id;
 
-    public KingAcknowledgeMessage(int decryptedMessage) {
+    public KingAcknowledgeMessage(int decryptedMessage, int sender_id) {
         this.acknowledged_message_type = mask(decryptedMessage >>> 22, 5);
         this.target_rat_id = mask(decryptedMessage, 22);
+        this.sender_id = sender_id;
     }
-    public KingAcknowledgeMessage(int message_type, int target_rat_id) {
+    public KingAcknowledgeMessage(int message_type, int target_rat_id, int sender_id) {
         this.acknowledged_message_type = message_type;
         this.target_rat_id = target_rat_id;
+        this.sender_id = sender_id;
     }
 
     @Override

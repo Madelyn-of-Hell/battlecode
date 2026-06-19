@@ -7,8 +7,9 @@ public class RatPackVolunteerToGoBackInsteadOfAttack extends Communication {
 
     public int pack_id;
 
-    public RatPackVolunteerToGoBackInsteadOfAttack(int decryptedMessage) {
+    public RatPackVolunteerToGoBackInsteadOfAttack(int decryptedMessage, int sender_id) {
         this.pack_id = mask(decryptedMessage, 27);
+        this.sender_id = sender_id;
     }
 
 

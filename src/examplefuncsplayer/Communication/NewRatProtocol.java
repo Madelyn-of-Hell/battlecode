@@ -9,11 +9,12 @@ public class NewRatProtocol extends Communication {
     public int target_rat_id;
     public RobotProtocol prescribed_protocol;
 
-    public NewRatProtocol(int decryptedMessage) {
+    public NewRatProtocol(int decryptedMessage, int sender_id) {
         int prescribed_protocol = mask(decryptedMessage >>> 25, 2);
         this.prescribed_protocol = RobotProtocol.values()[prescribed_protocol];
 
         this.target_rat_id = mask(decryptedMessage, 25);
+        this.sender_id = sender_id;
     }
 
 

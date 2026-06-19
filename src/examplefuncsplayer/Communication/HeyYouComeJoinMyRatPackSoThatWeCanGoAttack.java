@@ -7,7 +7,6 @@ public class HeyYouComeJoinMyRatPackSoThatWeCanGoAttack extends Communication {
 
     public int pack_size;
     public int pack_id;
-    public int sender_id;
 
     public HeyYouComeJoinMyRatPackSoThatWeCanGoAttack(int decryptedMessage, int sender_id) {
         this.pack_size = mask(decryptedMessage >>> 18, 8);

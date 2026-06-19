@@ -23,20 +23,20 @@ public abstract class Communication {
         int decrypted_message = decrypt(raw_message.getBytes(), byte_mask(self[0].shared_key));
         int message_id = decrypted_message >>> 27;
         return switch (message_id) { // Thank you Jetbrains Linter for informing me this is possible !!
-            case 1 -> new NewRatProtocol(decrypted_message);
-            case 2 -> new KingAcknowledgeMessage(decrypted_message);
-            case 3 -> new NewRatProtocolAcknowledge(decrypted_message);
-            case 4 -> new RatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs(decrypted_message);
-            case 5 -> new RatPackVolunteerToGoBackInsteadOfAttack(decrypted_message);
-            case 6 -> new RatPackHasNewKingToAttack(decrypted_message);
-            case 7 -> new RatPackGoingDark(decrypted_message);
-            case 8 -> new RatPackShouldAttack(decrypted_message);
-            case 9 -> new RatPackReassemble(decrypted_message);
-            case 10 -> new WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack(decrypted_message);
+            case 1 -> new NewRatProtocol(decrypted_message, raw_message.getSenderID());
+            case 2 -> new KingAcknowledgeMessage(decrypted_message, raw_message.getSenderID());
+            case 3 -> new NewRatProtocolAcknowledge(decrypted_message, raw_message.getSenderID());
+            case 4 -> new RatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs(decrypted_message, raw_message.getSenderID());
+            case 5 -> new RatPackVolunteerToGoBackInsteadOfAttack(decrypted_message, raw_message.getSenderID());
+            case 6 -> new RatPackHasNewKingToAttack(decrypted_message, raw_message.getSenderID());
+            case 7 -> new RatPackGoingDark(decrypted_message, raw_message.getSenderID());
+            case 8 -> new RatPackShouldAttack(decrypted_message, raw_message.getSenderID());
+            case 9 -> new RatPackReassemble(decrypted_message, raw_message.getSenderID());
+            case 10 -> new WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack(decrypted_message, raw_message.getSenderID());
             case 11 -> new HeyYouComeJoinMyRatPackSoThatWeCanGoAttack(decrypted_message, raw_message.getSenderID());
-            case 12 -> new EnemyRatKingFound(decrypted_message);
-            case 13 -> new CheeseMineFound(decrypted_message);
-            case 14 -> new CatWaypointFound(decrypted_message);
+            case 12 -> new EnemyRatKingFound(decrypted_message, raw_message.getSenderID());
+            case 13 -> new CheeseMineFound(decrypted_message, raw_message.getSenderID());
+            case 14 -> new CatWaypointFound(decrypted_message, raw_message.getSenderID());
             default -> throw new RuntimeException("Unreachable");
         };
     }

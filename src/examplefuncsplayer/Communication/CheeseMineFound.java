@@ -8,16 +8,20 @@ public class CheeseMineFound extends Communication {
 
     public MapLocation mine_position;
 
-    public CheeseMineFound(int decryptedMessage) {
+    public CheeseMineFound(int decryptedMessage, int sender_id) {
         int pos_x = mask(decryptedMessage >>> 21, 6);
         int pos_y = mask(decryptedMessage >>> 15, 6);
         this.mine_position = new MapLocation(pos_x, pos_y);
+        this.sender_id = sender_id;
     }
 
     @Override
     public void handle(RobotPlayer[] robot) {
         if (!robot[0].cheese_mines.contains(this.mine_position)) {
             robot[0].add_cheese_mine(this.mine_position);
+        }
+        if (robot[0].is_king) {
+            robot[0].queued_messages.add(new KingAcknowledgeMessage(message_id, robot[0].id, this.sender_id));
         }
     }
 

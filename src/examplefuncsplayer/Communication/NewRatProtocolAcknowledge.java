@@ -8,9 +8,10 @@ public class NewRatProtocolAcknowledge extends Communication {
 
     public RobotProtocol protocol;
 
-    public NewRatProtocolAcknowledge(int decryptedMessage) {
+    public NewRatProtocolAcknowledge(int decryptedMessage, int sender_id) {
         int acknowledged_protocol = mask(decryptedMessage >>> 25, 2);
         this.protocol = RobotProtocol.values()[acknowledged_protocol];
+        this.sender_id = sender_id;
     }
 
 

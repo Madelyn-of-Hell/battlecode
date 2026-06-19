@@ -9,12 +9,13 @@ public class RatPackHasNewKingToAttack extends Communication {
     public MapLocation new_king_loc;
     public int pack_id;
 
-    public RatPackHasNewKingToAttack(int decryptedMessage) {
+    public RatPackHasNewKingToAttack(int decryptedMessage, int sender_id) {
         int pos_x = mask(decryptedMessage >>> 21, 6);
         int pos_y = mask(decryptedMessage >>> 15, 6);
         int id = mask(decryptedMessage, 15);
         this.new_king_loc = new MapLocation(pos_x, pos_y);
         this.pack_id = id;
+        this.sender_id = sender_id;
     }
 
 
