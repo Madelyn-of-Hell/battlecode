@@ -20,8 +20,8 @@ public abstract class Communication {
     /// @param raw_message The message object, as pulled from ReadSqueaks
     /// @param self a reference to the robot player (stored as array because that's how you do references in java lol)
     /// @return A fully populated child object of Communication
-    public static Communication parse(Message raw_message, RobotPlayer[] self) {
-        int decrypted_message = decrypt(raw_message.getBytes(), byte_mask(self[0].shared_key));
+    public static Communication parse(Message raw_message, RobotPlayer[] robot) {
+        int decrypted_message = decrypt(raw_message.getBytes(), byte_mask(robot[0].shared_key()));
         int message_id = decrypted_message >>> 27;
         return switch (message_id) { // Thank you Jetbrains Linter for informing me this is possible !!
             case 1 -> new NewRatProtocol(decrypted_message, raw_message.getSenderID());
@@ -85,7 +85,7 @@ public abstract class Communication {
     public abstract int package_message();
 
     public int render(RobotPlayer[] interface_array) {
-        return encrypt(this.package_message(), interface_array[0].shared_key);
+        return encrypt(this.package_message(), interface_array[0].shared_key());
     }
 
     /// Tiny little helper function to mask bits to make the rest of the work easier

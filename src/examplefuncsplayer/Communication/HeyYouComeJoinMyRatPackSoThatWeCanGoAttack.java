@@ -19,9 +19,9 @@ public class HeyYouComeJoinMyRatPackSoThatWeCanGoAttack extends Communication {
     @Override
     public void handle(RobotPlayer[] robot) {
         if ( // Sometimes nice formatting is fun :3
-                robot[0].current_protocol == RobotProtocol.Attack &&
-                robot[0].pack_id != this.pack_id &&
-                this.pack_size > robot[0].pack_size
+                robot[0].current_protocol() == RobotProtocol.Attack &&
+                robot[0].pack_id() != this.pack_id &&
+                this.pack_size > robot[0].pack_size()
         ) {
             robot[0].join_pack(this.pack_id);
         }
@@ -34,8 +34,8 @@ public class HeyYouComeJoinMyRatPackSoThatWeCanGoAttack extends Communication {
 
     @Override
     public boolean terminus_met(RobotPlayer[] robot) {
-        return (robot[0].pack_size > RobotPlayer.PACK_ATTACK_SIZE) ||
-                (robot[0].terminus_messages.contains(new TerminusMessage(TerminusMessageType.RatPackHasChanged, 0)));
+        return (robot[0].pack_size() > RobotPlayer.PACK_ATTACK_SIZE) ||
+                (robot[0].terminus_messages().contains(new TerminusMessage(TerminusMessageType.RatPackHasChanged, 0)));
     }
 
     @Override

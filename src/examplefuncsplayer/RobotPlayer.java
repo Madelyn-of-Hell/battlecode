@@ -46,23 +46,26 @@ public class RobotPlayer {
         Direction.NORTHWEST,
     };
     static final int cat_waypoint_danger_radius = 4;
-    public LinkedList<TerminusMessage>  terminus_messages;
-    public LinkedList<PredicateMessage> predicate_messages;
-    public int id;
-    public boolean is_king;
-    public RobotProtocol current_protocol;
+    private LinkedList<TerminusMessage>  terminus_messages; public LinkedList<TerminusMessage> terminus_messages() {return this.terminus_messages;}
+    private LinkedList<PredicateMessage> predicate_messages; public LinkedList<PredicateMessage> predicate_messages() {return this.predicate_messages;}
+    private final int id; public int id() {return this.id;}
+    private final boolean is_king; public boolean is_king() {return this.is_king;}
+    private RobotProtocol current_protocol; public RobotProtocol current_protocol() {return this.current_protocol;}
     public RobotController rc;
-    public LinkedList<MapLocation> cat_waypoints;
-    public LinkedList<MapLocation> cheese_mines;
-    public HashMap<Integer, EnemyRatKingPosition> enemy_rat_kings;
+    private LinkedList<MapLocation> cat_waypoints; public LinkedList<MapLocation> cat_waypoints() {return this.cat_waypoints;}
+    private LinkedList<MapLocation> cheese_mines; public LinkedList<MapLocation> cheese_mines() {return this.cheese_mines;}
+    private HashMap<Integer, EnemyRatKingPosition> enemy_rat_kings; public HashMap<Integer, EnemyRatKingPosition> enemy_rat_kings() {return this.enemy_rat_kings;}
 
-    public DstarMap nav_map;
-    public int pack_id;
-    public int pack_size;
-    public int[] known_pack_members;
-    public LinkedList<Communication> queued_messages;
-    public int shared_key;
-    public int[] shared_array_mirror = new int[64];
+    private DstarMap nav_map;
+    private int pack_id; public int pack_id() {return this.pack_id;}
+    private int pack_size; public int pack_size() {return this.pack_size;}
+    private int[] known_pack_members; public int[] known_pack_members() {return this.known_pack_members;}
+    private LinkedList<Communication> queued_messages; public LinkedList<Communication> queued_messages() {return this.queued_messages;}
+    private int shared_key;
+    public int shared_key() {
+        return this.shared_key;
+    }
+    private int[] shared_array_mirror = new int[64];
 
     public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, int width, int height, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
         this.id = id;
@@ -312,5 +315,9 @@ public class RobotPlayer {
     public void join_pack(int pack_id) {
         this.queue_message( new WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack(this.pack_id, pack_id, this.id));
         this.pack_id = pack_id;
+    }
+
+    public void set_protocol(RobotProtocol prescribedProtocol) {
+        this.current_protocol = prescribedProtocol;
     }
 }

@@ -17,11 +17,11 @@ public class CheeseMineFound extends Communication {
 
     @Override
     public void handle(RobotPlayer[] robot) {
-        if (!robot[0].cheese_mines.contains(this.mine_position)) {
+        if (!robot[0].cheese_mines().contains(this.mine_position)) {
             robot[0].add_cheese_mine(this.mine_position);
         }
-        if (robot[0].is_king) {
-            robot[0].queued_messages.add(new KingAcknowledgeMessage(message_id, this.sender_id, robot[0].id));
+        if (robot[0].is_king()) {
+            robot[0].queued_messages().add(new KingAcknowledgeMessage(message_id, this.sender_id, robot[0].id()));
         }
     }
 
@@ -32,7 +32,7 @@ public class CheeseMineFound extends Communication {
 
     @Override
     public boolean terminus_met(RobotPlayer[] robot) {
-        return robot[0].terminus_messages.contains(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, message_id));
+        return robot[0].terminus_messages().contains(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, message_id));
     }
 
     @Override
