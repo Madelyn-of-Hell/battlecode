@@ -216,19 +216,29 @@ public class RobotPlayer {
         }
     }
     public void add_enemy_rat_king(MapLocation king_pos, int king_id) {
+        handle_enemy_rat_king(king_pos, king_id, EnemyRatKingPosition.LifeStatus.Alive);
+    }
+    public void mark_enemy_rat_king_dead(int king_id) {
+        handle_enemy_rat_king(new MapLocation(0,0), king_id, EnemyRatKingPosition.LifeStatus.Dead);
+    }
+    public void handle_enemy_rat_king(MapLocation king_pos, int king_id, EnemyRatKingPosition.LifeStatus status) {
         // apparently .equals works with null values so im safe to not check first if it exists
         boolean has_changed = (Objects.equals(this.enemy_rat_kings.get(id), new EnemyRatKingPosition(king_pos, king_id, EnemyRatKingPosition.LifeStatus.Alive)));
-        this.enemy_rat_kings.put(king_id, new EnemyRatKingPosition(king_pos, king_id, EnemyRatKingPosition.LifeStatus.Alive));
+        this.enemy_rat_kings.put(king_id, new EnemyRatKingPosition(king_pos, king_id, status));
         if (this.is_king && has_changed) {
             System.out.println(this.broadcast_enemy_king(king_pos).message);
         }
     }
 
     public Result broadcast_cat_waypoint(MapLocation cat_waypoint) {
-        Optional<Integer> first_free_index = this.first_free_index(11, 26);
+        return broadcast_coordinates(cat_waypoint, 11, 26);
+    }
+
+    private Result broadcast_coordinates(MapLocation coordinates, int offset, int limit) {
+        Optional<Integer> first_free_index = this.first_free_index(offset, limit);
         if (first_free_index.isPresent()) {
             int ffi = first_free_index.get();
-            int compressed_coordinate = this.compressed_coordinate(cat_waypoint);
+            int compressed_coordinate = this.compressed_coordinate(coordinates);
             try {
                 this.rc.writeSharedArray(ffi, compressed_coordinate);
                 this.shared_array_mirror[ffi] = compressed_coordinate;
@@ -243,57 +253,15 @@ public class RobotPlayer {
     }
 
     public Result broadcast_cheese_mine(MapLocation cheese_mine) {
-        Optional<Integer> first_free_index = this.first_free_index(38, 27);
-        if (first_free_index.isPresent()) {
-            int ffi = first_free_index.get();
-            int compressed_coordinate = this.compressed_coordinate(cheese_mine);
-            try {
-                this.rc.writeSharedArray(ffi, compressed_coordinate);
-                this.shared_array_mirror[ffi] = compressed_coordinate;
-            } catch (GameActionException e) {
-                // This should NEVER occur if I manage to properly implement the budget-conscious system.
-                System.out.println(e);
-                return Result.fail("Somehow failed to write to the shared array...");
-
-            }
-        }
-        return Result.fail("No free spots in shared array...");
+        return broadcast_coordinates(cheese_mine, 38, 27);
     }
 
-    public Result broadcast_enemy_king(MapLocation cheese_mine) {
-        Optional<Integer> first_free_index = this.first_free_index(6, 5);
-        if (first_free_index.isPresent()) {
-            int ffi = first_free_index.get();
-            int compressed_coordinate = this.compressed_coordinate(cheese_mine);
-            try {
-                this.rc.writeSharedArray(ffi, compressed_coordinate);
-                this.shared_array_mirror[ffi] = compressed_coordinate;
-            } catch (GameActionException e) {
-                // This should NEVER occur if I manage to properly implement the budget-conscious system.
-                System.out.println(e);
-                return Result.fail("Somehow failed to write to the shared array...");
-
-            }
-        }
-        return Result.fail("No free spots in shared array...");
+    public Result broadcast_enemy_king(MapLocation enemy_king) {
+        return broadcast_coordinates(enemy_king, 6, 5);
     }
 
-    public Result broadcast_friendly_king(MapLocation cheese_mine) {
-        Optional<Integer> first_free_index = this.first_free_index(1, 5);
-        if (first_free_index.isPresent()) {
-            int ffi = first_free_index.get();
-            int compressed_coordinate = this.compressed_coordinate(cheese_mine);
-            try {
-                this.rc.writeSharedArray(ffi, compressed_coordinate);
-                this.shared_array_mirror[ffi] = compressed_coordinate;
-                return Result.ok();
-            } catch (GameActionException e) {
-                // This should NEVER occur if I manage to properly implement the budget-conscious system.
-                System.out.println(e);
-                return Result.fail("Somehow failed to write to the shared array...");
-            }
-        }
-        return Result.fail("No free spots in shared array...");
+    public Result broadcast_friendly_king(MapLocation friendly_king) {
+        return broadcast_coordinates(friendly_king, 1, 5);
     }
 
     private int compressed_coordinate(MapLocation catWaypoint) {
