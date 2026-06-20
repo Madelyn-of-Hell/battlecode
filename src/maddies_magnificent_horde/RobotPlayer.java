@@ -3,7 +3,7 @@ package maddies_magnificent_horde;
 import battlecode.common.*;
 import java.util.*;
 import maddies_magnificent_horde.Communication.*;
-import maddies_magnificent_horde.dstar.DstarMap;
+import maddies_magnificent_horde.DStarLiteJava.DStarLite;
 
 import static maddies_magnificent_horde.Communication.Communication.compare_id;
 
@@ -13,6 +13,12 @@ public class RobotPlayer {
     public static final int PACK_ATTACK_SIZE = 10;
     static final int CAT_WAYPOINT_DANGER_RADIUS = 4; // this one isn't lol it's just true
 
+    public static final double CAT_WAYPOINT_COST = 5;
+    public static final double CAT_COST = -1;
+    public static final double CLEAR_GROUND_COST = 0;
+    public static final double RAT_COST = -1;
+    public static final double WALL_COST = -1;
+    public static final double DIRT_COST = 1;
     // Perpetually used properties
 
         // Basics
@@ -29,8 +35,8 @@ public class RobotPlayer {
 
 
         // Collections
-        /// The map used by the D* implementation I aped.
-        private DstarMap nav_map;
+        /// The pathfinder of the D* implementation I aped.
+        private DStarLite pathfinder;
         /// All messages currently in the outbound queue.
         private LinkedList<Communication> queued_messages; public LinkedList<Communication> queued_messages() {return this.queued_messages;}
         /// All terminus messages waiting to be acted upon.
@@ -74,7 +80,7 @@ public class RobotPlayer {
         this.is_king = rc.getType() == UnitType.RAT_KING;
         this.current_protocol = RobotProtocol.None;
         this.rc = rc;
-        this.nav_map = new DstarMap(rc.getMapWidth(), rc.getMapHeight());
+        this.pathfinder = new DStarLite();
         this.queued_messages = new LinkedList<Communication>();
         this.terminus_messages = new LinkedList<TerminusMessage>();
         this.predicate_messages = new LinkedList<PredicateMessage>();
@@ -201,21 +207,17 @@ public class RobotPlayer {
         }
     }
 
-    /// Static function that returns a {@link DstarMap} modified to include the warning zone around a cat waypoint.
-    /// @param nav_map the {@link DstarMap} to be changed.
-    /// @param cat_waypoint the position of the Waypoint.
-    /// @return the modified {@link DstarMap}.
-    //TODO: Add Tests
-    public static DstarMap return_cat_waypoint(DstarMap nav_map, MapLocation cat_waypoint) {
-        return nav_map;
-    }
 
     /// Adds records of the new Waypoint in all the places they're needed.
     /// @param cat_waypoint the position of the Waypoint.
     //TODO: Add Tests
     public void add_cat_waypoint(MapLocation cat_waypoint) {
         this.cat_waypoints.add(cat_waypoint);
-        this.nav_map = return_cat_waypoint(this.nav_map, cat_waypoint);
+        for (int y = -CAT_WAYPOINT_DANGER_RADIUS; y <= CAT_WAYPOINT_DANGER_RADIUS; y++) {
+            for (int x = -CAT_WAYPOINT_DANGER_RADIUS; y<= CAT_WAYPOINT_DANGER_RADIUS; x++) {
+                this.pathfinder.updateCell(x,y,CAT_WAYPOINT_COST);
+            }
+        }
         if (this.is_king) {
             System.out.println(this.broadcast_cat_waypoint(cat_waypoint).message);
         }
