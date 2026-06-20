@@ -1,6 +1,7 @@
 package examplefuncsplayer.Communication;
 
 import examplefuncsplayer.RobotPlayer;
+import examplefuncsplayer.RobotProtocol;
 
 public class WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack extends Communication {
     public static final int message_id = 9;
@@ -21,22 +22,29 @@ public class WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack extends Communica
 
 
     @Override
-    public void handle(RobotPlayer[] interface_array) {
-
+    public void handle(RobotPlayer[] robot) {
+        if (compare_id(robot[0].pack_id(), this.old_pack_id)) {
+            robot[0].join_pack(this.new_pack_id);
+            robot[0].clear_known_pack_members();
+            robot[0].add_pack_member(this.sender_id);
+        }
+        else if (robot[0].current_protocol() == RobotProtocol.Attack) {
+            robot[0].add_pack_member(this.sender_id);
+        }
     }
 
     @Override
-    public boolean predicate_met(RobotPlayer[] interface_array) {
+    public boolean predicate_met(RobotPlayer[] robot) {
         return true;
     }
 
     @Override
-    public boolean terminus_met(RobotPlayer[] interface_array) {
+    public boolean terminus_met(RobotPlayer[] robot) {
         return true;
     }
 
     @Override
     public int package_message() {
-        return 0;
+        return message_id << 27 | Communication.mask(this.old_pack_id, 13) << 14 | Communication.mask(this.new_pack_id, 13) << 1;
     }
 }

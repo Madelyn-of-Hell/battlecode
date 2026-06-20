@@ -56,7 +56,7 @@ public class RobotPlayer {
     private DstarMap nav_map;
     private int pack_id; public int pack_id() {return this.pack_id;}
     private int pack_size; public int pack_size() {return this.pack_size;}
-    private int[] known_pack_members; public int[] known_pack_members() {return this.known_pack_members;}
+    private HashSet<Integer> known_pack_members; public HashSet<Integer> known_pack_members() {return this.known_pack_members;}
     private LinkedList<Communication> queued_messages; public LinkedList<Communication> queued_messages() {return this.queued_messages;}
     private int shared_key;
     public int shared_key() {
@@ -321,5 +321,13 @@ public class RobotPlayer {
     }
 
     public void debrief_opt_in(){this.is_debriefing = Optional.of(true);}
-    public void debrief_opt_out(){this.is_debriefing = Optional.empty(false);}
+    public void debrief_opt_out(){this.is_debriefing = Optional.of(false);}
+
+    public void clear_known_pack_members() {
+        this.known_pack_members = new HashSet<Integer>() {
+        };
+    }
+    public void add_pack_member(int id) {
+        this.known_pack_members.add(id);
+    }
 }
