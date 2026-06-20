@@ -66,6 +66,7 @@ public class RobotPlayer {
         return this.shared_key;
     }
     private int[] shared_array_mirror = new int[64];
+    private Optional<ExploreTerminus> explore_terminus;
 
     public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, int width, int height, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
         this.id = id;
@@ -85,19 +86,19 @@ public class RobotPlayer {
     @SuppressWarnings("unused")
     public static void run(RobotController rc) {
         //Initial Setup
-        RobotPlayer[] self = new RobotPlayer[]{ new RobotPlayer(
+        RobotPlayer robot = new RobotPlayer(
                 rc.getID(),
                 RobotProtocol.None,
                 rc.getType() == UnitType.RAT_KING,
                 rc.getMapWidth(),
                 rc.getMapHeight(),
                 rc
-        )};
-        if (self[0].is_king) {
-            self[0].current_protocol = RobotProtocol.Propagate;
-            self[0].shared_key = Communication.create_key();
+        );
+        if (robot.is_king) {
+            robot.current_protocol = RobotProtocol.Propagate;
+            robot.shared_key = Communication.create_key();
             try {
-                self[0].rc.writeSharedArray(0, self[0].shared_key);
+                robot.rc.writeSharedArray(0, robot.shared_key);
             } catch (GameActionException e) {
                 // There is NO reason either of these should ever occur, but I don't want to include throws error on the function because I'll forget about it for something important.
                 System.out.print("Couldn't add the shared key to the array because ");
@@ -105,7 +106,7 @@ public class RobotPlayer {
             }
         } else {
             try {
-                self[0].shared_key = rc.readSharedArray(0);
+                robot.shared_key = rc.readSharedArray(0);
             } catch (GameActionException e) {
                 // There is NO reason either of these should ever occur, but I don't want to include throws error on the function because I'll forget about it for something important.
                 System.out.print("Couldn't read the shared key from the array because ");
@@ -114,29 +115,28 @@ public class RobotPlayer {
         }
 
         while (true) {
-            self[0].handle_incoming_communication();
-
-            switch (self[0].current_protocol) {
+            robot.handle_incoming_communication();
+            switch (robot.current_protocol) {
                 case Explore: {
-                    self[0].explore();
+                    robot.explore();
                 }
                 case Gather: {
-                    self[0].gather();
+                    robot.gather();
                 }
                 case Attack: {
-                    self[0].attack();
+                    robot.attack();
                 }
                 case Propagate: {
-                    self[0].propagate();
+                    robot.propagate();
                 }
                 case Conserve:{
-                    self[0].conserve();
+                    robot.conserve();
                 }
                 case None: {
 
                 }
             }
-            self[0].handle_outgoing_communication();
+            robot.handle_outgoing_communication();
 
             //Turn OVER
             Clock.yield();
@@ -145,11 +145,15 @@ public class RobotPlayer {
         // Your code should never reach here (unless it's intentional)! Self-destruction imminent...
     }
 
+    private void observe() {
+
+    }
+
 
     // TODO: Add Tests
     private void handle_outgoing_communication() {
         this.queued_messages.removeIf(
-                message -> message.terminus_met(new RobotPlayer[]{this})
+                message -> message.terminus_met(this.reference())
         ); // I gotta admit, Jetbrains' Java linter is kinda popping off with these recommendations
 
         this.queued_messages.sort((o1, o2) -> {
@@ -163,8 +167,8 @@ public class RobotPlayer {
         });
 
         for (Communication message : this.queued_messages) {
-            if (message.predicate_met(new RobotPlayer[]{this})) {
-                this.rc.squeak(message.render(new RobotPlayer[]{this}));
+            if (message.predicate_met(this.reference())) {
+                this.rc.squeak(message.render(this.reference()));
                 break;
             }
         }
@@ -187,8 +191,8 @@ public class RobotPlayer {
     // TODO: Add Tests
     public void handle_incoming_communication() {
         for (Message message : this.rc.readSqueaks(-1)) {
-            Communication comm = Communication.parse(message, new RobotPlayer[]{this});
-            comm.handle(new RobotPlayer[]{this});
+            Communication comm = Communication.parse(message, this.reference());
+            comm.handle(this.reference());
         }
     }
 
@@ -319,5 +323,12 @@ public class RobotPlayer {
 
     public void set_protocol(RobotProtocol prescribedProtocol) {
         this.current_protocol = prescribedProtocol;
+    }
+    public RobotPlayer[] reference() {
+        return new RobotPlayer[] {this};
+    }
+
+    public void set_explore_terminus(ExploreTerminus terminus) {
+        this.explore_terminus = Optional.of(terminus);
     }
 }
