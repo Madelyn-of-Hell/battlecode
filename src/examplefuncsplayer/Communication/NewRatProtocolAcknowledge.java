@@ -20,22 +20,23 @@ public class NewRatProtocolAcknowledge extends Communication {
 
 
     @Override
-    public void handle(RobotPlayer[] interface_array) {
-
+    public void handle(RobotPlayer[] robot) {
+        // Thankfully, we know this sender ID is lossless so we don't need to do comparisons and the like to determine if the ids r the same
+        robot[0].queue_terminus(new TerminusMessage(TerminusMessageType.NewRatProtocolAcknowledge, this.sender_id));
     }
 
     @Override
-    public boolean predicate_met(RobotPlayer[] interface_array) {
+    public boolean predicate_met(RobotPlayer[] robot) {
         return true;
     }
 
     @Override
-    public boolean terminus_met(RobotPlayer[] interface_array) {
+    public boolean terminus_met(RobotPlayer[] robot) {
         return true;
     }
 
     @Override
     public int package_message() {
-        return 0;
+        return message_id << 27 | this.protocol.value << 25;
     }
 }
