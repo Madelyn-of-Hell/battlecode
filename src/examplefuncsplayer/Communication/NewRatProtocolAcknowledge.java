@@ -13,6 +13,10 @@ public class NewRatProtocolAcknowledge extends Communication {
         this.protocol = RobotProtocol.values()[acknowledged_protocol];
         this.sender_id = sender_id;
     }
+    public NewRatProtocolAcknowledge(RobotProtocol protocol, int sender_id) {
+        this.protocol = protocol;
+        this.sender_id = sender_id;
+    }
 
 
     @Override

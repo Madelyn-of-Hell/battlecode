@@ -20,22 +20,25 @@ public class NewRatProtocol extends Communication {
 
 
     @Override
-    public void handle(RobotPlayer[] interface_array) {
-
+    public void handle(RobotPlayer[] robot) {
+        if (compare_id(robot[0].id(), this.target_rat_id)) {
+            robot[0].set_protocol(this.prescribed_protocol);
+            robot[0].queue_message(new NewRatProtocolAcknowledge(prescribed_protocol, robot[0].id()));
+        }
     }
 
     @Override
-    public boolean predicate_met(RobotPlayer[] interface_array) {
+    public boolean predicate_met(RobotPlayer[] robot) {
         return true;
     }
 
     @Override
-    public boolean terminus_met(RobotPlayer[] interface_array) {
-        return false;
+    public boolean terminus_met(RobotPlayer[] robot) {
+        return robot[0].terminus_messages().contains(new TerminusMessage(TerminusMessageType.NewRatProtocolAcknowledge, this.target_rat_id));
     }
 
     @Override
     public int package_message() {
-        return 0;
+        return message_id << 27 | prescribed_protocol.value << 25 | Communication.mask(target_rat_id, 25);
     }
 }
