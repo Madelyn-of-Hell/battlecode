@@ -24,7 +24,7 @@ public class RatPackHasNewKingToAttack extends Communication {
     public void handle(RobotPlayer[] robot) {
         if (
             robot[0].current_protocol() == RobotProtocol.Attack &&
-            robot[0].pack_id() == this.pack_id &&
+            compare_id(robot[0].pack_id(), this.pack_id) &&
             robot[0].target_king_loc() != this.new_king_loc
         ) {
             robot[0].set_target_king_loc(this.new_king_loc);

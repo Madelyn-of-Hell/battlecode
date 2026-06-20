@@ -68,6 +68,8 @@ public class RobotPlayer {
     private int[] shared_array_mirror = new int[64];
     private Optional<ExploreTerminus> explore_terminus;
     private MapLocation target_king_loc; public MapLocation target_king_loc() {return this.target_king_loc;}
+    private int target_king_id; public int target_king_id() {return this.target_king_id;}
+
 
     public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, int width, int height, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
         this.id = id;
@@ -298,6 +300,9 @@ public class RobotPlayer {
     }
     public void set_target_king_loc(MapLocation target_king_loc) {
         this.target_king_loc = target_king_loc;
+    }
+    public void set_target_king_id(int target_king_id) {
+        this.target_king_id = target_king_id;
     }
     public void set_explore_terminus(ExploreTerminus terminus) {
         this.explore_terminus = Optional.of(terminus);
