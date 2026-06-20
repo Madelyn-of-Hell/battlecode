@@ -4,10 +4,7 @@ import battlecode.common.*;
 
 import java.util.*;
 
-import examplefuncsplayer.Communication.Communication;
-import examplefuncsplayer.Communication.PredicateMessage;
-import examplefuncsplayer.Communication.TerminusMessage;
-import examplefuncsplayer.Communication.WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack;
+import examplefuncsplayer.Communication.*;
 import examplefuncsplayer.dstar.DstarMap;
 
 /**
@@ -70,6 +67,7 @@ public class RobotPlayer {
     private MapLocation target_king_loc; public MapLocation target_king_loc() {return this.target_king_loc;}
     private int target_king_id; public int target_king_id() {return this.target_king_id;}
 
+    private AttackState attack_state; public AttackState attack_state() {return attack_state;}
 
     public RobotPlayer(int id, RobotProtocol start_protocol, boolean is_king, int width, int height, RobotController rc) { // be REAL NICE if i could add default values here, JAVA
         this.id = id;
@@ -306,5 +304,19 @@ public class RobotPlayer {
     }
     public void set_explore_terminus(ExploreTerminus terminus) {
         this.explore_terminus = Optional.of(terminus);
+    }
+
+    public boolean has_message_for_king() {
+        for (Communication message : this.queued_messages) {
+            if (
+                    message instanceof CatWaypointFound ||
+                    message instanceof CheeseMineFound ||
+                    message instanceof EnemyRatKingFound ||
+                    message instanceof RatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs
+            ) {
+                return true;
+            }
+        }
+        return false;
     }
 }

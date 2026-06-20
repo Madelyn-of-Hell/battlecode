@@ -4,6 +4,8 @@ import battlecode.common.MapLocation;
 import examplefuncsplayer.RobotPlayer;
 import examplefuncsplayer.RobotProtocol;
 
+import java.awt.*;
+
 public class RatPackReassemble extends Communication {
     public static final int message_id = 8;
 
@@ -22,7 +24,10 @@ public class RatPackReassemble extends Communication {
 
     @Override
     public void handle(RobotPlayer[] robot) {
-        if ((robot[0].current_protocol() != RobotProtocol.Attack)) {
+        if (
+                robot[0].current_protocol() != RobotProtocol.Attack ||
+                robot[0].has_message_for_king()
+        ) {
             robot[0].set_protocol(RobotProtocol.Attack);
             robot[0].set_target_king_loc(this.victim_pos);
             robot[0].set_target_king_id(this.victim_id);
