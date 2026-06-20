@@ -25,7 +25,7 @@ public class EnemyRatKingFound extends Communication {
 
     @Override
     public void handle(RobotPlayer[] robot) {
-        Optional<Integer> match_id = this.find_id(robot[0].enemy_rat_kings.keySet());
+        Optional<Integer> match_id = this.find_id(robot[0].enemy_rat_kings().keySet());
 
         if (match_id.isEmpty()) {
             robot[0].add_enemy_rat_king(this.king_position, this.king_id);
@@ -33,7 +33,7 @@ public class EnemyRatKingFound extends Communication {
             robot[0].add_enemy_rat_king(this.king_position, match_id.get());
         }
         if (robot[0].is_king()) {
-            robot[0].queue_message(new KingAcknowledgeMessage(message_id, this.sender_id, robot[0].id));
+            robot[0].queue_message(new KingAcknowledgeMessage(message_id, this.sender_id, robot[0].id()));
         }
 
     }

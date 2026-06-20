@@ -22,7 +22,7 @@ public class CatWaypointFound extends Communication {
             robot[0].add_cat_waypoint(this.waypoint_position);
         }
         if (robot[0].is_king()) {
-            robot[0].queued_messages().add(new KingAcknowledgeMessage(message_id, this.sender_id, robot[0].id));
+            robot[0].queued_messages().add(new KingAcknowledgeMessage(message_id, this.sender_id, robot[0].id()));
         }
     }
 
