@@ -5,36 +5,33 @@ import examplefuncsplayer.RobotPlayer;
 
 public class RatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs extends Communication {
     public static final int message_id = 3;
-    public MapLocation corpse_pos;
     public int corpse_id;
 
     public RatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs(int decryptedMessage, int sender_id) {
-        int pos_x = mask(decryptedMessage >>> 21, 6);
-        int pos_y = mask(decryptedMessage >>> 15, 6);
-        int id = mask(decryptedMessage, 15);
-        this.corpse_pos = new MapLocation(pos_x, pos_y);
-        this.corpse_id = id;
+        this.corpse_id = mask(decryptedMessage, 27);
         this.sender_id = sender_id;
     }
 
 
     @Override
-    public void handle(RobotPlayer[] interface_array) {
-
+    public void handle(RobotPlayer[] robot) {
+        if (robot[0].is_king()) {
+            robot[0].mark_enemy_rat_king_dead(this.corpse_id);
+        }
     }
 
     @Override
-    public boolean predicate_met(RobotPlayer[] interface_array) {
-        return false;
+    public boolean predicate_met(RobotPlayer[] robot) {
+        return robot[0].predicate_messages().contains(new PredicateMessage(PredicateMessageType.KingInSqueakRadius, 0));
     }
 
     @Override
-    public boolean terminus_met(RobotPlayer[] interface_array) {
-        return false;
+    public boolean terminus_met(RobotPlayer[] robot) {
+        return robot[0].terminus_messages().contains(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, message_id));
     }
 
     @Override
     public int package_message() {
-        return 0;
+        return message_id << 27 | Communication.mask(corpse_id, 27);
     }
 }
