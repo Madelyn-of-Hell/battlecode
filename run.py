@@ -380,13 +380,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--p1",
         type=str,
-        default="examplefuncsplayer",
+        default="maddies_magnificent_horde",
         help="Name of Player 1"
     )
     parser.add_argument(
         "--p2",
         type=str,
-        default="examplefuncsplayer",
+        default="maddies_magnificent_horde",
         help="Name of Player 2"
     )
     parser.add_argument(

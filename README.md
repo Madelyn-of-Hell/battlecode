@@ -1,6 +1,6 @@
 # Battlecode 2026 Scaffold - Java
 
-This is the Battlecode 2026 Java scaffold, containing an `examplefuncsplayer`. Read https://play.battlecode.org/bc26/quick_start !
+This is the Battlecode 2026 Java scaffold, containing an `maddies_magnificent_horde`. Read https://play.battlecode.org/bc26/quick_start !
 
 
 ### Project Structure
@@ -28,8 +28,8 @@ This is the Battlecode 2026 Java scaffold, containing an `examplefuncsplayer`. R
 
 ### How to get started
 
-You are free to directly edit `examplefuncsplayer`.
-However, we recommend you make a new bot by copying `examplefuncsplayer` to a new package under the `src` folder.
+You are free to directly edit `maddies_magnificent_horde`.
+However, we recommend you make a new bot by copying `maddies_magnificent_horde` to a new package under the `src` folder.
 
 ### Useful Commands
 
