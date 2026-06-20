@@ -14,22 +14,30 @@ public class RatPackVolunteerToGoBackInsteadOfAttack extends Communication {
 
 
     @Override
-    public void handle(RobotPlayer[] interface_array) {
-
+    public void handle(RobotPlayer[] robot) {
+        if (compare_id(robot[0].pack_id(), this.pack_id)) {
+            if (robot[0].is_debriefing().isEmpty()) {
+                robot[0].debrief_opt_in();
+                robot[0].queue_message(new RatPackVolunteerToGoBackInsteadOfAttack(this.pack_id, robot[0].id()));
+            }
+            if (robot[0].id() > this.sender_id) {
+                robot[0].debrief_opt_out();
+            }
+        }
     }
 
     @Override
-    public boolean predicate_met(RobotPlayer[] interface_array) {
+    public boolean predicate_met(RobotPlayer[] robot) {
         return true;
     }
 
     @Override
-    public boolean terminus_met(RobotPlayer[] interface_array) {
+    public boolean terminus_met(RobotPlayer[] robot) {
         return true;
     }
 
     @Override
     public int package_message() {
-        return 0;
+        return message_id << 27 | Communication.mask(this.pack_id, 27);
     }
 }
