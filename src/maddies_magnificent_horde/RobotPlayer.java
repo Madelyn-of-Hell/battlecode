@@ -43,6 +43,10 @@ public class RobotPlayer {
         private DStarLite pathfinder;
         /// The current target being navigated to. May be None if not navving somewhere.
         private Optional<MapLocation> nav_target; public Optional<MapLocation> nav_target() {return this.nav_target;}
+
+        private boolean map_has_changed;
+        private int path_index;
+        private HashSet<MapLocation> known_walls;
         /// All messages currently in the outbound queue.
         private LinkedList<Communication> queued_messages; public LinkedList<Communication> queued_messages() {return this.queued_messages;}
         /// All terminus messages waiting to be acted upon.
@@ -92,6 +96,7 @@ public class RobotPlayer {
         this.predicate_messages = new LinkedList<PredicateMessage>();
         this.cat_waypoints = new LinkedList<MapLocation>();
         this.cheese_mines = new HashSet<MapLocation>();
+        this.known_walls = new HashSet<MapLocation>();
     };
     @SuppressWarnings("unused")
     public static void run(RobotController rc) {
@@ -119,6 +124,7 @@ public class RobotPlayer {
         }
 
         while (true) {
+            robot.map_has_changed = false;
             robot.turn++;
             robot.handle_incoming_communication();
             robot.observe();
@@ -126,21 +132,31 @@ public class RobotPlayer {
             switch (robot.current_protocol) {
                 case Explore: {
                     robot.explore();
+                    break;
                 }
                 case Gather: {
                     robot.gather();
+                    break;
                 }
                 case Attack: {
                     robot.attack();
+                    break;
                 }
                 case Propagate: {
                     robot.propagate();
+                    break;
                 }
-                case Conserve:{
+                case Conserve: {
                     robot.conserve();
+                    break;
                 }
                 case None: {
-
+                    MapLocation target = new MapLocation(29,0);
+                    if (Objects.equals(robot.position(), new MapLocation(29, 29))) {
+                        target = new MapLocation(0,0);
+                    }
+                    robot.navigate_naive(target);
+                    break;
                 }
             }
 
@@ -153,6 +169,7 @@ public class RobotPlayer {
 
     /// Take a look at the surroundings and note down All the Things—other rats, cheese, tiles, etc.
     private void observe() {
+        this.position = this.rc.getLocation();
         for (MapInfo detail : this.rc.senseNearbyMapInfos()) {
             if (detail.hasCheeseMine()){this.add_cheese_mine(detail.getMapLocation());}
             if (detail.isDirt()){this.add_dirt(detail.getMapLocation());}
@@ -200,6 +217,14 @@ public class RobotPlayer {
     /// Churn out babies as fast as the movement cap will let you.
     // TODO: Add Tests
     private void propagate() {
+        try {
+            for (MapLocation i: this.rc.getAllLocationsWithinRadiusSquared(this.position(), 4))
+                if (this.rc.canBuildRat(i)) {
+                    this.rc.buildRat(i);
+                }
+        } catch (GameActionException e) {
+            System.out.println(e);
+        }
     }
 
     /// Produce babies at a more conservative, budgeted rate.
@@ -227,6 +252,7 @@ public class RobotPlayer {
     //TODO: Add Tests
     public void add_cat_waypoint(MapLocation cat_waypoint) {
         this.cat_waypoints.add(cat_waypoint);
+        this.map_has_changed = true;
         for (int y = -CAT_WAYPOINT_DANGER_RADIUS; y <= CAT_WAYPOINT_DANGER_RADIUS; y++) {
             for (int x = -CAT_WAYPOINT_DANGER_RADIUS; y<= CAT_WAYPOINT_DANGER_RADIUS; x++) {
                 this.pathfinder.updateCell(x,y,CAT_WAYPOINT_COST);
@@ -250,9 +276,17 @@ public class RobotPlayer {
     }
 
     private void add_dirt(MapLocation dirt) {
+        this.map_has_changed = true;
         this.pathfinder.updateCell(dirt.x, dirt.y, DIRT_COST);
     }
-    private void add_wall(MapLocation wall) {this.pathfinder.updateCell(wall.x, wall.y, WALL_COST);}
+    private void add_wall(MapLocation wall) {
+
+        if (this.known_walls.add(wall)) {
+            System.out.println("Adding wall: " + wall);
+            this.pathfinder.updateCell(wall.x, wall.y, WALL_COST);
+            this.map_has_changed = true;
+        }
+    }
 
     /// Adds a record of an Enemy Rat King, or modifies it if one already exists.
     /// Wrapper for {@link #handle_enemy_rat_king}
@@ -441,37 +475,188 @@ public class RobotPlayer {
         this.known_pack_members.add(id);
     }
 
-    private void navigate(MapLocation to) {
-        // Making to an Optional means I don't have to check if nav_target is present first
-        if (Optional.of(to).equals(this.nav_target())) {
-            if (!this.pathfinder.replan()) {
-                System.out.println("CAN'T GO WHERE WE NEED TO SOMETHING WENT WRONG");
-                assert(false);
-            } else {
-                try {
-                    State next_tile = this.pathfinder.getPath().get(1);
-                    MapLocation next_tile_map = new MapLocation(next_tile.x, next_tile.y);
-                    // While testing I wanna be failing loud and proud
-                    assert(this.position().distanceSquaredTo(next_tile_map) < 2);
-                    Direction direction = this.position().directionTo(next_tile_map);
-                    try {
-                        try {
-                            rc.removeDirt(next_tile_map);
-                        } catch (GameActionException e) {System.out.println("No dirt to remove lol");}
-                        if (this.rc.canMove(direction)) {
-                            this.rc.turn(direction);
-                            this.rc.move(direction);
-                            this.position = next_tile_map;
-                            this.pathfinder.updateStart(this.position().x, this.position().y);
-                        }
-                    } catch (GameActionException e) {
-                        throw new RuntimeException(this.id + "Couldn't move here on turn " + this.turn);
-                    }
-                } catch (IndexOutOfBoundsException e) {
-                    // Arrived
-                }
-                }
+    private void navigate_naive(MapLocation to) {
+        Optional<Direction> direction = this.find_nearest_direction(this.position().directionTo(to));
+        if (direction.isPresent()) {
+            try {
+                this.rc.move(direction.get());
+            } catch (GameActionException e) {
+                System.out.println(e);
             }
         }
+    }
+    private void navigate_dstar(MapLocation to) {
+        // Making to an Optional means I don't have to check if nav_target is present first
+        if (!Optional.of(to).equals(this.nav_target)) {
+            this.nav_target = Optional.of(to);
+            this.pathfinder.init(this.position().x, this.position().y, to.x,to.y);
+            this.known_walls.clear();
+            this.map_has_changed = true;
+        }
+        if (this.map_has_changed) { //Hopefully we rarely need to recalculate
+            System.out.println("MAP HAS CHANGED");
+            this.pathfinder.updateStart(this.position().x, this.position().y);
+            path_index = 1;
+            if (!this.pathfinder.replan()) {
+                System.out.println("CAN'T GO FROM " + this.position() + " TO " + this.nav_target.get());
+                assert (false);
+            }
+        } else {
+            try {
+                // For some reason when I try and use index a list with battlecode specifically it throws an error to do with the fact that they try and re-implement lists or something? idfk
+                State next_tile = getState();
+                MapLocation next_tile_map = new MapLocation(next_tile.x, next_tile.y);
+                // While testing I wanna be failing loud and proud
+                System.out.println("Current Positon: " + this.position() + "Next tile: " + next_tile_map + " Distance: " + this.position().distanceSquaredTo(next_tile_map));
+                assert(this.position().distanceSquaredTo(next_tile_map) <= 2);
+                Direction direction = this.position().directionTo(next_tile_map);
+                try {
+                    try {
+                        rc.removeDirt(next_tile_map);
+                    } catch (GameActionException ignored) {}//No dirt to remove
+
+                    if (this.rc.canTurn()) {
+                        this.rc.turn(direction);
+                    }
+                    if (this.rc.isMovementReady()) {
+                        Optional<Direction> final_direction = this.find_nearest_direction(direction);
+                        if (final_direction.isPresent()) {
+                            this.rc.move(direction);
+                            System.out.println("Moved to " + this.position());
+                            path_index++;
+                        }
+                    }
+                } catch (GameActionException e) {
+
+                    throw new RuntimeException(this.id + "Couldn't move from (" + this.position().x + "," + this.position().y + ") to (" + next_tile.x + "," + next_tile.y + ") because " + e);
+                }
+            } catch (IndexOutOfBoundsException e) {
+                System.out.println(e);
+            }
+        }
+    }
+
+    private State getState() {
+        Object[] path = this.pathfinder.getPath().toArray();
+//                String path_display = String.valueOf("PATH: " + path.length + " ");
+//                for (Object node_obj : path) {
+//                    State node_state = (State) node_obj;
+//                    try {
+//                        this.rc.setIndicatorDot(new MapLocation(node_state.x, node_state.y), 255, 255, 255);
+//                    } catch (GameActionException e) {
+//                        System.out.println("Debug tool failed");
+//                        System.out.println(e);
+//                    }
+//                    path_display = path_display.concat(String.valueOf("(" + node_state.x + "," + node_state.y + "), "));
+//                }
+//                System.out.println(path_display);
+        State next_tile = (State) path[path_index];
+        return next_tile;
+    }
+
+    private Optional<Direction> find_nearest_direction(Direction direction) {
+        final HashMap<Direction, Direction[]> direction_map = new HashMap<>();
+        direction_map.put(Direction.EAST, new Direction[]{
+                Direction.EAST,
+                Direction.NORTHEAST,
+                Direction.SOUTHEAST,
+                Direction.NORTH,
+                Direction.SOUTH,
+                Direction.NORTHWEST,
+                Direction.SOUTHWEST,
+                Direction.WEST
+        });
+        direction_map.put(
+                Direction.NORTHEAST, new Direction[]{
+                        Direction.NORTHEAST,
+                        Direction.EAST,
+                        Direction.NORTH,
+                        Direction.SOUTHEAST,
+                        Direction.NORTHWEST,
+                        Direction.SOUTH,
+                        Direction.WEST,
+                        Direction.SOUTHWEST
+        });
+        direction_map.put(
+                Direction.SOUTHEAST, new Direction[]{
+                        Direction.SOUTHEAST,
+                        Direction.EAST,
+                        Direction.SOUTH,
+                        Direction.NORTHEAST,
+                        Direction.SOUTHWEST,
+                        Direction.NORTH,
+                        Direction.WEST,
+                        Direction.NORTHWEST
+        });
+        direction_map.put(
+                Direction.NORTH, new Direction[]{
+                        Direction.NORTH,
+                        Direction.NORTHWEST,
+                        Direction.NORTHEAST,
+                        Direction.WEST,
+                        Direction.EAST,
+                        Direction.SOUTHWEST,
+                        Direction.SOUTHEAST,
+                        Direction.SOUTH
+                }
+        );
+        direction_map.put(
+                Direction.SOUTH, new Direction[]{
+                        Direction.SOUTH,
+                        Direction.SOUTHEAST,
+                        Direction.SOUTHWEST,
+                        Direction.EAST,
+                        Direction.WEST,
+                        Direction.NORTHWEST,
+                        Direction.NORTHEAST,
+                        Direction.NORTH
+                }
+        );
+        direction_map.put(
+                Direction.NORTHWEST, new Direction[]{
+                        Direction.NORTHWEST,
+                        Direction.WEST,
+                        Direction.NORTH,
+                        Direction.SOUTHWEST,
+                        Direction.NORTHEAST,
+                        Direction.SOUTH,
+                        Direction.EAST,
+                        Direction.SOUTHEAST
+                }
+        );
+        direction_map.put(
+                Direction.SOUTHWEST, new Direction[]{
+                        Direction.SOUTHWEST,
+                        Direction.SOUTH,
+                        Direction.WEST,
+                        Direction.SOUTHEAST,
+                        Direction.NORTHWEST,
+                        Direction.EAST,
+                        Direction.NORTH,
+                        Direction.NORTHEAST
+                }
+        );
+        direction_map.put(
+                Direction.WEST, new Direction[]{
+                        Direction.WEST,
+                        Direction.SOUTHWEST,
+                        Direction.NORTHWEST,
+                        Direction.SOUTH,
+                        Direction.NORTH,
+                        Direction.SOUTHEAST,
+                        Direction.NORTHEAST,
+                        Direction.EAST
+                }
+        );
+        if (direction == Direction.CENTER) {
+            System.out.println("We don't serve centrists here");
+            return Optional.empty();
+        }
+        for (int i = 0; i < 8; i++) {
+            if (this.rc.canMove(direction_map.get(direction)[i])) {
+                return Optional.of(direction_map.get(direction)[i]);
+            }
+        }
+        return Optional.empty();
     }
 }
