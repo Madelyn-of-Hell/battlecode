@@ -106,6 +106,7 @@ public class RobotPlayer {
         this.cheese_mines = new HashSet<MapLocation>();
         this.known_walls = new HashSet<MapLocation>();
         this.cheese_recap = new int[10];
+        Arrays.fill(this.cheese_recap, this.rc.getGlobalCheese());
     };
     @SuppressWarnings("unused")
     public static void run(RobotController rc) {
@@ -227,6 +228,7 @@ public class RobotPlayer {
     /// Churn out babies as fast as the movement cap will let you.
     // TODO: Add Tests
     private void propagate() {
+        this.rc.setIndicatorString("Propagate Mode | " + this.global_cheese_rate() + " Cheese/t");
         try {
             for (MapLocation i: this.rc.getAllLocationsWithinRadiusSquared(this.position(), 4))
                 if (this.rc.canBuildRat(i)) {
@@ -250,6 +252,7 @@ public class RobotPlayer {
     /// Produce babies at a more conservative, budgeted rate.
     // TODO: Add Tests
     private void conserve() {
+        this.rc.setIndicatorString("Conserve Mode | " + this.global_cheese_rate() + "Cheese/t");
         try {
             if (this.rc.getGlobalCheese() - this.rc.getCurrentRatCost() > 2 * CHEESE_SURVIVAL_BUFFER) {
                 for (MapLocation i : this.rc.getAllLocationsWithinRadiusSquared(this.position(), 4)) {
@@ -702,7 +705,8 @@ public class RobotPlayer {
         return Optional.empty();
     }
     private int global_cheese_rate() {
-        this.cheese_recap[this.turn % 10] = this.rc.getGlobalCheese() - this.cheese_recap[(this.turn-1) % 10];
-        return (int) Arrays.stream(this.cheese_recap).average().getAsDouble(); // We can be certain it exists given cheese recap is initialised with zeros
+        this.cheese_recap[this.turn % 10] = this.rc.getGlobalCheese();
+        // I'm not kidding for some reason battlecode's implementation of java can't do sum or average of an array. so.
+        return this.cheese_recap[this.turn % 10] - (this.cheese_recap[0] + this.cheese_recap[1] + this.cheese_recap[2] + this.cheese_recap[3] + this.cheese_recap[4] + this.cheese_recap[5] + this.cheese_recap[6] + this.cheese_recap[7] + this.cheese_recap[8] + this.cheese_recap[9]) / 10; // We can be certain it exists given cheese recap is initialised with zeros
     }
 }
