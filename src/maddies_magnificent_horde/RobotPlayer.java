@@ -2,6 +2,8 @@ package maddies_magnificent_horde;
 
 import battlecode.common.*;
 import java.util.*;
+import java.util.stream.Stream;
+
 import maddies_magnificent_horde.Communication.*;
 import maddies_magnificent_horde.DStarLiteJava.DStarLite;
 import maddies_magnificent_horde.DStarLiteJava.State;
@@ -115,7 +117,7 @@ public class RobotPlayer {
                 System.out.println(e.getMessage());
             }
         } else {
-            try { robot.shared_key = rc.readSharedArray(0); }
+            try { robot.shared_key = Communication.mask(rc.readSharedArray(0), 8); }
             catch (GameActionException e) {
                 // There is NO reason either of these should ever occur, but I don't want to include throws error on the function because I'll forget about it for something important.
                 System.out.print("Couldn't read the shared key from the array because ");
@@ -175,7 +177,6 @@ public class RobotPlayer {
             if (detail.isDirt()){this.add_dirt(detail.getMapLocation());}
             if (detail.isWall()){this.add_wall(detail.getMapLocation());}
             if (detail.getTrap() == TrapType.RAT_TRAP){}
-
         }
     }
 
@@ -195,6 +196,9 @@ public class RobotPlayer {
 
         for (Communication message : this.queued_messages) {
             if (message.predicate_met(this.reference())) {
+                System.out.println(message);
+                System.out.println("Sending Message: " + Integer.toBinaryString(message.package_message()) + " Encrypted: " + Integer.toBinaryString(message.render(this.reference())) + " Shared key: " + Integer.toBinaryString(this.shared_key()) + " Message ID: " + Integer.toBinaryString(message.message_id()));
+                this.rc.setIndicatorString("Sending " + message + "with shared key" + this.shared_key);
                 this.rc.squeak(message.render(this.reference()));
                 if (message.terminus_met(this.reference())) {
                     this.queued_messages.remove(message);
@@ -241,6 +245,7 @@ public class RobotPlayer {
     // TODO: Add Tests
     public void handle_incoming_communication() {
         for (Message message : this.rc.readSqueaks(-1)) {
+            this.rc.setIndicatorString("Handling " + message);
             Communication comm = Communication.parse(message, this.reference());
             comm.handle(this.reference());
         }
