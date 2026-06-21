@@ -40,7 +40,7 @@ public int message_id(){return 0;}
 
     @Override
     public boolean terminus_met(RobotPlayer[] robot) {
-        return robot[0].terminus_messages().contains(new TerminusMessage(TerminusMessageType.NewRatProtocolAcknowledge, this.target_rat_id));
+        return true;
     }
 
     @Override

@@ -2,7 +2,7 @@ package maddies_magnificent_horde.Communication;
 
 import maddies_magnificent_horde.RobotPlayer;
 import maddies_magnificent_horde.RobotProtocol;
-
+/// Effectively Deprecated since NewRatProtocol no longer has a terminus
 public class NewRatProtocolAcknowledge extends Communication {
     @Override
 public int message_id(){return 2;}
