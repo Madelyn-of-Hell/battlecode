@@ -16,6 +16,8 @@ public class RobotPlayer {
     // Subject to a lottttttttt of changes (probably) (if i get time to tweak stuff)
     public static final int PACK_ATTACK_SIZE = 10;
     static final int CAT_WAYPOINT_DANGER_RADIUS = 4; // this one isn't lol it's just true
+    static final int CHEESE_SURVIVAL_BUFFER = 100;
+    static final int CHEESE_PROSPERITY_RATE = 100;
 
     public static final double CAT_WAYPOINT_COST = 5;
     public static final double CAT_COST = -1;
@@ -28,6 +30,7 @@ public class RobotPlayer {
         // Basics
         /// The Rat's ID. Provided by {@link RobotController}.
         private final int id; public int id() {return this.id;}
+
         /// The position of this Rat. Tracked independently of the RobotController.
         private MapLocation position; public MapLocation position() {return this.position;}
         /// The Shared Key for the team. Stored in index 0 of the SharedArrayBuffer
@@ -80,6 +83,9 @@ public class RobotPlayer {
     // King specific properties
         /// A mirror of the SharedArrayBuffer so the king doesn't have to constantly do expensive lookups of the actual buffer.
         private int[] shared_array_mirror = new int[64];
+        /// The number of rats that have been made by the King.
+        private int rats_made; public int rats_made() {return this.rats_made;} public void add_made_rat() {this.rats_made++;}
+        private int[] cheese_recap;
     // Explore mode specific properties
         /// The terminus condition for the Rat (if in Explore Mode). None if the rat started in Explore Mode.
         private Optional<ExploreTerminus> explore_terminus;
@@ -99,6 +105,7 @@ public class RobotPlayer {
         this.cat_waypoints = new LinkedList<MapLocation>();
         this.cheese_mines = new HashSet<MapLocation>();
         this.known_walls = new HashSet<MapLocation>();
+        this.cheese_recap = new int[10];
     };
     @SuppressWarnings("unused")
     public static void run(RobotController rc) {
@@ -198,7 +205,6 @@ public class RobotPlayer {
             if (message.predicate_met(this.reference())) {
                 System.out.println(message);
                 System.out.println("Sending Message: " + Integer.toBinaryString(message.package_message()) + " Encrypted: " + Integer.toBinaryString(message.render(this.reference())) + " Shared key: " + Integer.toBinaryString(this.shared_key()) + " Message ID: " + Integer.toBinaryString(message.message_id()));
-                this.rc.setIndicatorString("Sending " + message + "with shared key" + this.shared_key);
                 this.rc.squeak(message.render(this.reference()));
                 if (message.terminus_met(this.reference())) {
                     this.queued_messages.remove(message);
@@ -225,15 +231,47 @@ public class RobotPlayer {
             for (MapLocation i: this.rc.getAllLocationsWithinRadiusSquared(this.position(), 4))
                 if (this.rc.canBuildRat(i)) {
                     this.rc.buildRat(i);
+                    RobotProtocol new_protocol = this.rats_made % 4 == 0 ? RobotProtocol.Explore : RobotProtocol.Gather;
+                    this.queue_message(new NewRatProtocol(
+                            new_protocol,
+                            this.rc.senseRobotAtLocation(i).getID(),
+                            this.id
+                    ));
+                    this.rats_made++;
                 }
         } catch (GameActionException e) {
             System.out.println(e);
+        }
+        if (this.rc.getGlobalCheese() <= 2 * CHEESE_SURVIVAL_BUFFER || this.global_cheese_rate() >= CHEESE_PROSPERITY_RATE) {
+            this.set_protocol(RobotProtocol.Conserve);
         }
     }
 
     /// Produce babies at a more conservative, budgeted rate.
     // TODO: Add Tests
     private void conserve() {
+        try {
+            if (this.rc.getGlobalCheese() - this.rc.getCurrentRatCost() > 2 * CHEESE_SURVIVAL_BUFFER) {
+                for (MapLocation i : this.rc.getAllLocationsWithinRadiusSquared(this.position(), 4)) {
+                    if (this.rc.canBuildRat(i)) {
+                        this.rc.buildRat(i);
+                        RobotProtocol new_protocol = this.rats_made % 4 == 0 ? RobotProtocol.Explore : this.rats_made % 4 == 1 ? RobotProtocol.Gather : RobotProtocol.Attack;
+                        this.queue_message(new NewRatProtocol(
+                                new_protocol,
+                                this.rc.senseRobotAtLocation(i).getID(),
+                                this.id
+                        ));
+                        this.rats_made++;
+                    }
+                }
+            }
+        } catch (GameActionException e) {
+            System.out.println(e);
+        }
+
+        if (this.rc.getGlobalCheese() >= 2 * CHEESE_SURVIVAL_BUFFER && this.global_cheese_rate() <= CHEESE_PROSPERITY_RATE) {
+            this.set_protocol(RobotProtocol.Propagate);
+        }
     }
 
     /// Cover as much of the map as is possible, reporting any important discoveries.
@@ -245,7 +283,6 @@ public class RobotPlayer {
     // TODO: Add Tests
     public void handle_incoming_communication() {
         for (Message message : this.rc.readSqueaks(-1)) {
-            this.rc.setIndicatorString("Handling " + message);
             Communication comm = Communication.parse(message, this.reference());
             comm.handle(this.reference());
         }
@@ -663,5 +700,9 @@ public class RobotPlayer {
             }
         }
         return Optional.empty();
+    }
+    private int global_cheese_rate() {
+        this.cheese_recap[this.turn % 10] = this.rc.getGlobalCheese() - this.cheese_recap[(this.turn-1) % 10];
+        return (int) Arrays.stream(this.cheese_recap).average().getAsDouble(); // We can be certain it exists given cheese recap is initialised with zeros
     }
 }

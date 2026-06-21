@@ -17,6 +17,11 @@ public int message_id(){return 0;}
         this.target_rat_id = mask(decryptedMessage, 25);
         this.sender_id = sender_id;
     }
+    public NewRatProtocol(RobotProtocol prescribed_protocol, int target_rat_id, int sender_id) {
+        this.prescribed_protocol = prescribed_protocol;
+        this.target_rat_id = target_rat_id;
+        this.sender_id = sender_id;
+    }
 
 
 
