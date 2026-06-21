@@ -14,6 +14,10 @@ public class CheeseMineFound extends Communication {
         this.mine_position = new MapLocation(pos_x, pos_y);
         this.sender_id = sender_id;
     }
+    public CheeseMineFound(MapLocation mine_position, int sender_id) {
+        this.mine_position = mine_position;
+        this.sender_id = sender_id;
+    }
 
     @Override
     public void handle(RobotPlayer[] robot) {

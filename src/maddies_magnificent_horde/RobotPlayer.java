@@ -4,10 +4,12 @@ import battlecode.common.*;
 import java.util.*;
 import maddies_magnificent_horde.Communication.*;
 import maddies_magnificent_horde.DStarLiteJava.DStarLite;
+import maddies_magnificent_horde.DStarLiteJava.State;
 
 import static maddies_magnificent_horde.Communication.Communication.compare_id;
 
 public class RobotPlayer {
+    int turn = 0;
 
     // Subject to a lottttttttt of changes (probably) (if i get time to tweak stuff)
     public static final int PACK_ATTACK_SIZE = 10;
@@ -15,15 +17,17 @@ public class RobotPlayer {
 
     public static final double CAT_WAYPOINT_COST = 5;
     public static final double CAT_COST = -1;
-    public static final double CLEAR_GROUND_COST = 0;
+    public static final double CLEAR_GROUND_COST = 1;
     public static final double RAT_COST = -1;
     public static final double WALL_COST = -1;
-    public static final double DIRT_COST = 1;
+    public static final double DIRT_COST = 2;
     // Perpetually used properties
 
         // Basics
         /// The Rat's ID. Provided by {@link RobotController}.
         private final int id; public int id() {return this.id;}
+        /// The position of this Rat. Tracked independently of the RobotController.
+        private MapLocation position; public MapLocation position() {return this.position;}
         /// The Shared Key for the team. Stored in index 0 of the SharedArrayBuffer
         private int shared_key; public int shared_key() {return this.shared_key;}
         /// Whether or not the rat is King
@@ -37,6 +41,8 @@ public class RobotPlayer {
         // Collections
         /// The pathfinder of the D* implementation I aped.
         private DStarLite pathfinder;
+        /// The current target being navigated to. May be None if not navving somewhere.
+        private Optional<MapLocation> nav_target; public Optional<MapLocation> nav_target() {return this.nav_target;}
         /// All messages currently in the outbound queue.
         private LinkedList<Communication> queued_messages; public LinkedList<Communication> queued_messages() {return this.queued_messages;}
         /// All terminus messages waiting to be acted upon.
@@ -73,7 +79,7 @@ public class RobotPlayer {
         private Optional<ExploreTerminus> explore_terminus;
     // Gather mode specific properties
         /// The list of all known Cheese Mines.
-        private LinkedList<MapLocation> cheese_mines; public LinkedList<MapLocation> cheese_mines() {return this.cheese_mines;}
+        private HashSet<MapLocation> cheese_mines; public HashSet<MapLocation> cheese_mines() {return this.cheese_mines;}
 
     public RobotPlayer(RobotController rc) {
         this.id = rc.getID();
@@ -85,7 +91,7 @@ public class RobotPlayer {
         this.terminus_messages = new LinkedList<TerminusMessage>();
         this.predicate_messages = new LinkedList<PredicateMessage>();
         this.cat_waypoints = new LinkedList<MapLocation>();
-        this.cheese_mines = new LinkedList<MapLocation>();
+        this.cheese_mines = new HashSet<MapLocation>();
     };
     @SuppressWarnings("unused")
     public static void run(RobotController rc) {
@@ -113,6 +119,7 @@ public class RobotPlayer {
         }
 
         while (true) {
+            robot.turn++;
             robot.handle_incoming_communication();
             robot.observe();
 
@@ -146,8 +153,15 @@ public class RobotPlayer {
 
     /// Take a look at the surroundings and note down All the Things—other rats, cheese, tiles, etc.
     private void observe() {
+        for (MapInfo detail : this.rc.senseNearbyMapInfos()) {
+            if (detail.hasCheeseMine()){this.add_cheese_mine(detail.getMapLocation());}
+            if (detail.isDirt()){this.add_dirt(detail.getMapLocation());}
+            if (detail.isWall()){this.add_wall(detail.getMapLocation());}
+            if (detail.getTrap() == TrapType.RAT_TRAP){}
 
+        }
     }
+
 
     /// Sort messages by importance, shoot off the most important one, then clear it out if its terminus condition has been reached
     // TODO: Add Tests
@@ -227,11 +241,18 @@ public class RobotPlayer {
     /// @param cheese_mine the position of the Cheese Mine.
     //TODO: Add Tests
     public void add_cheese_mine(MapLocation cheese_mine) {
-        this.cheese_mines.add(cheese_mine);
-        if (this.is_king) {
-            System.out.println(this.broadcast_cheese_mine(cheese_mine).message);
+        if (this.cheese_mines.add(cheese_mine)) {
+            this.queue_message(new CheeseMineFound(cheese_mine, this.id));
+            if (this.is_king) {
+                System.out.println(this.broadcast_cheese_mine(cheese_mine).message);
+            }
         }
     }
+
+    private void add_dirt(MapLocation dirt) {
+        this.pathfinder.updateCell(dirt.x, dirt.y, DIRT_COST);
+    }
+    private void add_wall(MapLocation wall) {this.pathfinder.updateCell(wall.x, wall.y, WALL_COST);}
 
     /// Adds a record of an Enemy Rat King, or modifies it if one already exists.
     /// Wrapper for {@link #handle_enemy_rat_king}
@@ -418,5 +439,39 @@ public class RobotPlayer {
         if (this.known_pack_members().stream().noneMatch(known_id -> compare_id(known_id, id))) {
         }
         this.known_pack_members.add(id);
+    }
+
+    private void navigate(MapLocation to) {
+        // Making to an Optional means I don't have to check if nav_target is present first
+        if (Optional.of(to).equals(this.nav_target())) {
+            if (!this.pathfinder.replan()) {
+                System.out.println("CAN'T GO WHERE WE NEED TO SOMETHING WENT WRONG");
+                assert(false);
+            } else {
+                try {
+                    State next_tile = this.pathfinder.getPath().get(1);
+                    MapLocation next_tile_map = new MapLocation(next_tile.x, next_tile.y);
+                    // While testing I wanna be failing loud and proud
+                    assert(this.position().distanceSquaredTo(next_tile_map) < 2);
+                    Direction direction = this.position().directionTo(next_tile_map);
+                    try {
+                        try {
+                            rc.removeDirt(next_tile_map);
+                        } catch (GameActionException e) {System.out.println("No dirt to remove lol");}
+                        if (this.rc.canMove(direction)) {
+                            this.rc.turn(direction);
+                            this.rc.move(direction);
+                            this.position = next_tile_map;
+                            this.pathfinder.updateStart(this.position().x, this.position().y);
+                        }
+                    } catch (GameActionException e) {
+                        throw new RuntimeException(this.id + "Couldn't move here on turn " + this.turn);
+                    }
+                } catch (IndexOutOfBoundsException e) {
+                    // Arrived
+                }
+                }
+            }
+        }
     }
 }
