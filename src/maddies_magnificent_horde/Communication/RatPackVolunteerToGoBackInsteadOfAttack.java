@@ -3,7 +3,8 @@ package maddies_magnificent_horde.Communication;
 import maddies_magnificent_horde.RobotPlayer;
 
 public class RatPackVolunteerToGoBackInsteadOfAttack extends Communication {
-    public static final int message_id = 4;
+    @Override
+public int message_id(){return 4;}
 
     public int pack_id;
 
@@ -40,6 +41,6 @@ public class RatPackVolunteerToGoBackInsteadOfAttack extends Communication {
 
     @Override
     public int package_message() {
-        return message_id << 27 | Communication.mask(this.pack_id, 27);
+        return message_id() << 27 | Communication.mask(this.pack_id, 27);
     }
 }

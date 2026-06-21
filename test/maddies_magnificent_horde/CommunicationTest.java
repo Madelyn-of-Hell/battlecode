@@ -178,7 +178,7 @@
 //		)};
 //		message.handle(self);
 //		assertEquals(
-//				new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, CatWaypointFound.message_id),
+//				new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, CatWaypointFound.message_id()),
 //				self[0].terminusMessages[0]
 //		);
 //	}

@@ -7,7 +7,8 @@ import java.util.Optional;
 import java.util.Set;
 
 public class EnemyRatKingFound extends Communication {
-    public static final int message_id = 11;
+    @Override
+public int message_id(){return 11;}
 
     public MapLocation king_position;
     public int king_id;
@@ -32,7 +33,7 @@ public class EnemyRatKingFound extends Communication {
             robot[0].add_enemy_rat_king(this.king_position, match_id.get());
         }
         if (robot[0].is_king()) {
-            robot[0].queue_message(new KingAcknowledgeMessage(message_id, this.sender_id, robot[0].id()));
+            robot[0].queue_message(new KingAcknowledgeMessage(message_id(), this.sender_id, robot[0].id()));
         }
 
     }
@@ -52,11 +53,11 @@ public class EnemyRatKingFound extends Communication {
 
     @Override
     public boolean terminus_met(RobotPlayer[] robot) {
-        return robot[0].terminus_messages().contains(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, message_id));
+        return robot[0].terminus_messages().contains(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, message_id()));
     }
 
     @Override
     public int package_message() {
-        return message_id << 27 | Communication.mask(this.king_position.x, 6) << 21 | Communication.mask(this.king_position.y, 6) << 15 | Communication.mask(king_id, 15);
+        return message_id() << 27 | Communication.mask(this.king_position.x, 6) << 21 | Communication.mask(this.king_position.y, 6) << 15 | Communication.mask(king_id, 15);
     }
 }

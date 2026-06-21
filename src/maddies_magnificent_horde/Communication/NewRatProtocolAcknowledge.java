@@ -4,7 +4,8 @@ import maddies_magnificent_horde.RobotPlayer;
 import maddies_magnificent_horde.RobotProtocol;
 
 public class NewRatProtocolAcknowledge extends Communication {
-    public static final int message_id = 2;
+    @Override
+public int message_id(){return 2;}
 
     public RobotProtocol protocol;
 
@@ -37,6 +38,6 @@ public class NewRatProtocolAcknowledge extends Communication {
 
     @Override
     public int package_message() {
-        return message_id << 27 | this.protocol.value << 25;
+        return message_id() << 27 | this.protocol.value << 25;
     }
 }

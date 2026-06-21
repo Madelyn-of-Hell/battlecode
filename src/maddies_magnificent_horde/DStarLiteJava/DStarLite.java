@@ -588,12 +588,8 @@ public class DStarLite implements java.io.Serializable{
 		System.out.println("End node: (3,1)");
 
 		//Time the replanning
-		long begin = System.currentTimeMillis();
 		pf.replan();
 		pf.updateGoal(3, 2);
-		long end = System.currentTimeMillis();
-
-		System.out.println("Time: " + (end-begin) + "ms");
 
 		List<State> path = pf.getPath();
 		for (State i : path)

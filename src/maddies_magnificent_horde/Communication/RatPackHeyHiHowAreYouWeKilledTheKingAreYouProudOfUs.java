@@ -3,7 +3,8 @@ package maddies_magnificent_horde.Communication;
 import maddies_magnificent_horde.RobotPlayer;
 
 public class RatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs extends Communication {
-    public static final int message_id = 3;
+    @Override
+public int message_id(){return 3;}
     public int corpse_id;
 
     public RatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs(int decryptedMessage, int sender_id) {
@@ -26,11 +27,11 @@ public class RatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs extends Communi
 
     @Override
     public boolean terminus_met(RobotPlayer[] robot) {
-        return robot[0].terminus_messages().contains(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, message_id));
+        return robot[0].terminus_messages().contains(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, message_id()));
     }
 
     @Override
     public int package_message() {
-        return message_id << 27 | Communication.mask(corpse_id, 27);
+        return message_id() << 27 | Communication.mask(corpse_id, 27);
     }
 }

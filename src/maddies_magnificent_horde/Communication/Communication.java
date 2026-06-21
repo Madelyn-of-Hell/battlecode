@@ -10,8 +10,7 @@ public abstract class Communication {
     /// The ID of the rat who sent the message
     public int sender_id;
     /// The constant ID of the message. Overridden by each child.
-    public static int message_id;
-
+    public abstract int message_id();
     /// Given the message as an integer and the shared key, returns a communication (child) object
     /// @param raw_message The message object, as pulled from ReadSqueaks
     /// @param robot a reference to the robot player (stored as array because that's how you do references in java lol)

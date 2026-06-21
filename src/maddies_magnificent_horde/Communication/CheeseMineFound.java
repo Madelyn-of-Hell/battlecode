@@ -4,7 +4,8 @@ import battlecode.common.MapLocation;
 import maddies_magnificent_horde.RobotPlayer;
 
 public class CheeseMineFound extends Communication {
-    public static final int message_id = 12;
+    @Override
+public int message_id(){return 12;}
 
     public MapLocation mine_position;
 
@@ -25,7 +26,7 @@ public class CheeseMineFound extends Communication {
             robot[0].add_cheese_mine(this.mine_position);
         }
         if (robot[0].is_king()) {
-            robot[0].queued_messages().add(new KingAcknowledgeMessage(message_id, this.sender_id, robot[0].id()));
+            robot[0].queued_messages().add(new KingAcknowledgeMessage(message_id(), this.sender_id, robot[0].id()));
         }
     }
 
@@ -36,11 +37,11 @@ public class CheeseMineFound extends Communication {
 
     @Override
     public boolean terminus_met(RobotPlayer[] robot) {
-        return robot[0].terminus_messages().contains(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, message_id));
+        return robot[0].terminus_messages().contains(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, message_id()));
     }
 
     @Override
     public int package_message() {
-        return message_id << 27 | Communication.mask(this.mine_position.x, 6) << 21 | Communication.mask(this.mine_position.y, 6) << 15;
+        return message_id() << 27 | Communication.mask(this.mine_position.x, 6) << 21 | Communication.mask(this.mine_position.y, 6) << 15;
     }
 }

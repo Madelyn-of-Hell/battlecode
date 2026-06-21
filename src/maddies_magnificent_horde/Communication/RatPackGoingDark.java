@@ -5,7 +5,8 @@ import maddies_magnificent_horde.RobotPlayer;
 import maddies_magnificent_horde.RobotProtocol;
 
 public class RatPackGoingDark extends Communication {
-    public static final int message_id = 6;
+    @Override
+public int message_id(){return 6;}
 
     public int pack_id;
 
@@ -36,6 +37,6 @@ public class RatPackGoingDark extends Communication {
 
     @Override
     public int package_message() {
-        return message_id << 27 | Communication.mask(this.pack_id, 27);
+        return message_id() << 27 | Communication.mask(this.pack_id, 27);
     }
 }

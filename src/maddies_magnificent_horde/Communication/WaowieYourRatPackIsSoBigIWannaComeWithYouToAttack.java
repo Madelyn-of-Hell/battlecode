@@ -4,7 +4,8 @@ import maddies_magnificent_horde.RobotPlayer;
 import maddies_magnificent_horde.RobotProtocol;
 
 public class WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack extends Communication {
-    public static final int message_id = 9;
+    @Override
+public int message_id(){return 9;}
 
     public int old_pack_id;
     public int new_pack_id;
@@ -43,6 +44,6 @@ public class WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack extends Communica
 
     @Override
     public int package_message() {
-        return message_id << 27 | Communication.mask(this.old_pack_id, 13) << 14 | Communication.mask(this.new_pack_id, 13) << 1;
+        return message_id() << 27 | Communication.mask(this.old_pack_id, 13) << 14 | Communication.mask(this.new_pack_id, 13) << 1;
     }
 }

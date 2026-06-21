@@ -5,7 +5,8 @@ import maddies_magnificent_horde.RobotPlayer;
 import maddies_magnificent_horde.RobotProtocol;
 
 public class RatPackHasNewKingToAttack extends Communication {
-    public static final int message_id = 5;
+    @Override
+public int message_id(){return 5;}
 
     public MapLocation new_king_loc;
     public int pack_id;
@@ -45,6 +46,6 @@ public class RatPackHasNewKingToAttack extends Communication {
 
     @Override
     public int package_message() {
-        return message_id << 27 | Communication.mask(new_king_loc.x, 6) << 21 | Communication.mask(new_king_loc.y, 6) << 15 | Communication.mask(pack_id, 15);
+        return message_id() << 27 | Communication.mask(new_king_loc.x, 6) << 21 | Communication.mask(new_king_loc.y, 6) << 15 | Communication.mask(pack_id, 15);
     }
 }

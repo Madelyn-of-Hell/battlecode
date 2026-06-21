@@ -3,7 +3,8 @@ package maddies_magnificent_horde.Communication;
 import maddies_magnificent_horde.RobotPlayer;
 
 public class KingAcknowledgeMessage extends Communication {
-    public static final int message_id = 1;
+    @Override
+public int message_id(){return 1;}
 
     public int acknowledged_message_type; // just the normie id of the message
     public int target_rat_id;
@@ -38,6 +39,6 @@ public class KingAcknowledgeMessage extends Communication {
 
     @Override
     public int package_message() {
-        return message_id << 27 | this.acknowledged_message_type << 22 | Communication.mask(this.target_rat_id, 22);
+        return message_id() << 27 | this.acknowledged_message_type << 22 | Communication.mask(this.target_rat_id, 22);
     }
 }

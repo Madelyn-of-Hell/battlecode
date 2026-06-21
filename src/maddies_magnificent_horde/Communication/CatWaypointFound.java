@@ -4,7 +4,8 @@ import battlecode.common.MapLocation;
 import maddies_magnificent_horde.RobotPlayer;
 
 public class CatWaypointFound extends Communication {
-    public static final int message_id = 13;
+    @Override
+public int message_id(){return 13;}
     public MapLocation waypoint_position;
 
     public CatWaypointFound(int decryptedMessage, int sender_id) {
@@ -20,7 +21,7 @@ public class CatWaypointFound extends Communication {
             robot[0].add_cat_waypoint(this.waypoint_position);
         }
         if (robot[0].is_king()) {
-            robot[0].queued_messages().add(new KingAcknowledgeMessage(message_id, this.sender_id, robot[0].id()));
+            robot[0].queued_messages().add(new KingAcknowledgeMessage(message_id(), this.sender_id, robot[0].id()));
         }
     }
 
@@ -31,11 +32,11 @@ public class CatWaypointFound extends Communication {
 
     @Override
     public boolean terminus_met(RobotPlayer[] robot) {
-        return robot[0].terminus_messages().contains(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, message_id));
+        return robot[0].terminus_messages().contains(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, message_id()));
     }
 
     @Override
     public int package_message() {
-        return message_id << 27 | mask(waypoint_position.x, 6)  << 21 | mask(waypoint_position.y, 6) << 15;
+        return message_id() << 27 | mask(waypoint_position.x, 6)  << 21 | mask(waypoint_position.y, 6) << 15;
     }
 }

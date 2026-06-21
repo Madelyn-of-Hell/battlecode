@@ -184,10 +184,10 @@ public class RobotPlayer {
     // TODO: Add Tests
     private void handle_outgoing_communication() {
         this.queued_messages.sort((o1, o2) -> {
-            if (o1.message_id < o2.message_id) {
+            if (o1.message_id() < o2.message_id()) {
                 return -1;
             }
-            else if (o1.message_id > o2.message_id) {
+            else if (o1.message_id() > o2.message_id()) {
                 return 1;
             }
             return 0;
