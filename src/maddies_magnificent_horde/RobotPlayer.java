@@ -84,8 +84,11 @@ public class RobotPlayer {
         /// A mirror of the SharedArrayBuffer so the king doesn't have to constantly do expensive lookups of the actual buffer.
         private int[] shared_array_mirror = new int[64];
         /// The number of rats that have been made by the King.
-        private int rats_made; public int rats_made() {return this.rats_made;} public void add_made_rat() {this.rats_made++;}
+        public int rats_made() { // see 'new king strategy' for explanation
+            return (int) ((this.rc.getCurrentRatCost() - 10) << 2) / 5;
+        }
         private int[] cheese_recap;
+        private int[] d_cheese_recap;
     // Explore mode specific properties
         /// The terminus condition for the Rat (if in Explore Mode). None if the rat started in Explore Mode.
         private Optional<ExploreTerminus> explore_terminus;
@@ -99,15 +102,31 @@ public class RobotPlayer {
         this.current_protocol = RobotProtocol.None;
         this.rc = rc;
         this.pathfinder = new DStarLite();
-        this.queued_messages = new LinkedList<Communication>();
-        this.terminus_messages = new LinkedList<TerminusMessage>();
-        this.predicate_messages = new LinkedList<PredicateMessage>();
-        this.cat_waypoints = new LinkedList<MapLocation>();
-        this.cheese_mines = new HashSet<MapLocation>();
-        this.known_walls = new HashSet<MapLocation>();
-        this.cheese_recap = new int[10];
+        this.king_loc = this.parse_broadcast(1);
+        this.queued_messages = new LinkedList<>();
+        this.terminus_messages = new LinkedList<>();
+        this.predicate_messages = new LinkedList<>();
+        this.cat_waypoints = new LinkedList<>();
+        this.cheese_mines = new HashSet<>();
+        this.known_walls = new HashSet<>();
+        this.known_cheese = new HashSet<>();
+        this.debug_log = new LinkedList<>();
+        this.cheese_recap = new int[10]; this.d_cheese_recap = new int[10];
         Arrays.fill(this.cheese_recap, this.rc.getGlobalCheese());
-    };
+    }
+
+    private MapLocation parse_broadcast(int channel) {
+        try {
+            int data = this.rc.readSharedArray(1);
+            return new MapLocation(
+                    Communication.mask(data >>> 5, 5) << 1,
+                    Communication.mask(data, 5) << 1
+            );
+        } catch (GameActionException e) {
+            throw new RuntimeException("Something Wrong with the broadcast Parsing");
+        }
+    }
+
     @SuppressWarnings("unused")
     public static void run(RobotController rc) {
 
@@ -118,8 +137,10 @@ public class RobotPlayer {
             robot.current_protocol = RobotProtocol.Propagate;
             robot.shared_key = Communication.create_key();
 
-            try { robot.rc.writeSharedArray(0, robot.shared_key); }
-            catch (GameActionException e) {
+            try {
+                robot.rc.writeSharedArray(0, robot.shared_key);
+                robot.broadcast_friendly_king(robot.rc.getLocation());
+            } catch (GameActionException e) {
                 // There is NO reason either of these should ever occur, but I don't want to include throws error on the function because I'll forget about it for something important.
                 System.out.print("Couldn't add the shared key to the array because ");
                 System.out.println(e.getMessage());
@@ -161,22 +182,26 @@ public class RobotPlayer {
                     break;
                 }
                 case None: {
-                    MapLocation target = new MapLocation(29,0);
-                    if (Objects.equals(robot.position(), new MapLocation(29, 29))) {
-                        target = new MapLocation(0,0);
-                    }
-                    robot.navigate_naive(target);
                     break;
                 }
             }
 
-            robot.handle_outgoing_communication();
+            System.out.println("DEBUG LOG");
+            System.out.println(String.join("\n", robot.debug_log));
+            robot.rc.setIndicatorString(String.join("\n", robot.debug_log));
+            robot.debug_log.clear();
 
             //Turn OVER
             Clock.yield();
         }
     }
 
+    private void debug_log() {
+
+    }
+    private void add_debug_info(String info) {
+        this.debug_log.add(info);
+    }
     /// Take a look at the surroundings and note down All the Things—other rats, cheese, tiles, etc.
     private void observe() {
         this.position = this.rc.getLocation();
@@ -228,23 +253,30 @@ public class RobotPlayer {
     /// Churn out babies as fast as the movement cap will let you.
     // TODO: Add Tests
     private void propagate() {
-        this.rc.setIndicatorString("Propagate Mode | " + this.global_cheese_rate() + " Cheese/t");
-        try {
-            for (MapLocation i: this.rc.getAllLocationsWithinRadiusSquared(this.position(), 4))
+        int rats = this.rats_made();
+        System.out.println("Rats: " + (rats - 2) + " ± 2");
+        if (rats <= 20) {
+            for (MapLocation i: this.king_spawn_locs()) {
                 if (this.rc.canBuildRat(i)) {
-                    this.rc.buildRat(i);
-                    RobotProtocol new_protocol = this.rats_made % 4 == 0 ? RobotProtocol.Explore : RobotProtocol.Gather;
-                    this.queue_message(new NewRatProtocol(
-                            new_protocol,
-                            this.rc.senseRobotAtLocation(i).getID(),
-                            this.id
-                    ));
-                    this.rats_made++;
+                    try {
+                        this.rc.buildRat(i);
+                    } catch (GameActionException e) {throw new RuntimeException("Failed something definitely shown to be possible on turn" + this.rc.getRoundNum());}
+
+                    RobotProtocol new_protocol = RobotProtocol.Explore;
+                    try {
+                        this.queue_message(new NewRatProtocol(
+                                new_protocol,
+                                this.rc.senseRobotAtLocation(i).getID(),
+                                this.id
+                        ));
+                    } catch (GameActionException e) {throw new RuntimeException("Couldn't sense a robot at a location we KNOW it's in.");}
+                    break;
                 }
-        } catch (GameActionException e) {
-            System.out.println(e);
+            }
         }
-        if (this.rc.getGlobalCheese() <= 2 * CHEESE_SURVIVAL_BUFFER || this.global_cheese_rate() >= CHEESE_PROSPERITY_RATE) {
+        this.add_debug_info("Propagate Mode | " + this.global_cheese_rate() + " Cheese/t");
+
+        if (this.rc.getGlobalCheese() <= 2 * CHEESE_SURVIVAL_BUFFER && this.global_cheese_rate() >= CHEESE_PROSPERITY_RATE) {
             this.set_protocol(RobotProtocol.Conserve);
         }
     }
@@ -252,27 +284,7 @@ public class RobotPlayer {
     /// Produce babies at a more conservative, budgeted rate.
     // TODO: Add Tests
     private void conserve() {
-        this.rc.setIndicatorString("Conserve Mode | " + this.global_cheese_rate() + "Cheese/t");
-        try {
-            if (this.rc.getGlobalCheese() - this.rc.getCurrentRatCost() > 2 * CHEESE_SURVIVAL_BUFFER) {
-                for (MapLocation i : this.rc.getAllLocationsWithinRadiusSquared(this.position(), 4)) {
-                    if (this.rc.canBuildRat(i)) {
-                        this.rc.buildRat(i);
-                        RobotProtocol new_protocol = this.rats_made % 4 == 0 ? RobotProtocol.Explore : this.rats_made % 4 == 1 ? RobotProtocol.Gather : RobotProtocol.Attack;
-                        this.queue_message(new NewRatProtocol(
-                                new_protocol,
-                                this.rc.senseRobotAtLocation(i).getID(),
-                                this.id
-                        ));
-                        this.rats_made++;
-                    }
-                }
-            }
-        } catch (GameActionException e) {
-            System.out.println(e);
-        }
-
-        if (this.rc.getGlobalCheese() >= 2 * CHEESE_SURVIVAL_BUFFER && this.global_cheese_rate() <= CHEESE_PROSPERITY_RATE) {
+        if (this.rc.getGlobalCheese() < 2 * CHEESE_SURVIVAL_BUFFER || this.global_cheese_rate() <= CHEESE_PROSPERITY_RATE) {
             this.set_protocol(RobotProtocol.Propagate);
         }
     }
@@ -287,6 +299,7 @@ public class RobotPlayer {
     public void handle_incoming_communication() {
         for (Message message : this.rc.readSqueaks(-1)) {
             Communication comm = Communication.parse(message, this.reference());
+            this.add_debug_info("Message Received: " + comm);
             comm.handle(this.reference());
         }
     }
@@ -313,10 +326,13 @@ public class RobotPlayer {
     //TODO: Add Tests
     public void add_cheese_mine(MapLocation cheese_mine) {
         if (this.cheese_mines.add(cheese_mine)) {
+            System.out.println("Found Cheese Mine at " + cheese_mine);
             this.queue_message(new CheeseMineFound(cheese_mine, this.id));
             if (this.is_king) {
                 System.out.println(this.broadcast_cheese_mine(cheese_mine).message);
             }
+        } else {
+            System.out.println("Already knew about Cheese Mine at " + cheese_mine);
         }
     }
 
@@ -706,7 +722,26 @@ public class RobotPlayer {
     }
     private int global_cheese_rate() {
         this.cheese_recap[this.turn % 10] = this.rc.getGlobalCheese();
+        this.d_cheese_recap[this.turn % 10] = this.cheese_recap[this.turn % 10] - this.cheese_recap[(this.turn-1) % 10];
+        this.add_debug_info("d(cheese)/dt = " + this.d_cheese_recap[this.turn % 10]);
         // I'm not kidding for some reason battlecode's implementation of java can't do sum or average of an array. so.
-        return this.cheese_recap[this.turn % 10] - (this.cheese_recap[0] + this.cheese_recap[1] + this.cheese_recap[2] + this.cheese_recap[3] + this.cheese_recap[4] + this.cheese_recap[5] + this.cheese_recap[6] + this.cheese_recap[7] + this.cheese_recap[8] + this.cheese_recap[9]) / 10; // We can be certain it exists given cheese recap is initialised with zeros
+        return (this.d_cheese_recap[0] + this.d_cheese_recap[1] + this.d_cheese_recap[2] + this.d_cheese_recap[3] + this.d_cheese_recap[4] + this.d_cheese_recap[5] + this.d_cheese_recap[6] + this.d_cheese_recap[7] + this.d_cheese_recap[8] + this.d_cheese_recap[9]) / 10;
+    }
+    private void add_cheese(MapLocation cheese) {
+
+        if (this.known_cheese.add(cheese)) {
+            System.out.println("Added Cheese at " + cheese);
+        } else {
+//            System.out.println("Already knew about Cheese at " + cheese);
+        }
+    }
+
+    private MapLocation[] king_spawn_locs() {
+        return new MapLocation[]{
+                this.position().add(Direction.NORTH).add(Direction.NORTH),
+                this.position().add(Direction.SOUTH).add(Direction.SOUTH),
+                this.position().add(Direction.EAST).add(Direction.EAST),
+                this.position().add(Direction.WEST).add(Direction.WEST)
+        };
     }
 }
