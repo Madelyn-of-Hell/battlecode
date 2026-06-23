@@ -21,7 +21,10 @@ public int message_id(){return 11;}
         this.king_id = id;
         this.sender_id = sender_id;
     }
-
+    public EnemyRatKingFound(MapLocation rat_king, int sender_id) {
+        this.king_position = rat_king;
+        this.sender_id = sender_id;
+    }
 
     @Override
     public void handle(RobotPlayer[] robot) {

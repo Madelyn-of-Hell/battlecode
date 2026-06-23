@@ -113,6 +113,7 @@ public class RobotPlayer {
         this.queued_messages = new LinkedList<>();
         this.terminus_messages = new LinkedList<>();
         this.predicate_messages = new LinkedList<>();
+        this.enemy_rat_kings = new HashMap<>();
         this.cat_waypoints = new HashSet<>();
         this.cheese_mines = new HashSet<>();
         this.known_walls = new HashSet<>();
@@ -219,6 +220,11 @@ public class RobotPlayer {
             if (detail.hasCheeseMine()){this.add_cheese_mine(detail.getMapLocation());}
             if (detail.isWall()){this.add_wall(detail.getMapLocation());}
             if (detail.getTrap() == TrapType.RAT_TRAP){}
+        }
+        for (RobotInfo other_robot : this.rc.senseNearbyRobots()) {
+            if (other_robot.type == UnitType.RAT_KING && other_robot.getTeam() != rc.getTeam()){
+                this.add_enemy_rat_king(other_robot.location, other_robot.ID);
+            }
         }
     }
 
@@ -388,32 +394,34 @@ public class RobotPlayer {
     }
 
     /// Adds a record of an Enemy Rat King, or modifies it if one already exists.
-    /// Wrapper for {@link #handle_enemy_rat_king}
     /// @param king_pos the last known location of the King.
     /// @param king_id the ID of the King.
     public void add_enemy_rat_king(MapLocation king_pos, int king_id) {
-        handle_enemy_rat_king(king_pos, king_id, EnemyRatKingPosition.LifeStatus.Alive);
+        if (this.enemy_rat_kings.put(king_id, new EnemyRatKingPosition(king_pos, king_id, EnemyRatKingPosition.LifeStatus.Alive)) == null) {
+            if (this.is_king()) {
+                if (this.broadcast_enemy_king(king_pos).success) {
+                    add_debug_info("Broadcast a new enemy rat king at " + king_pos);
+                } else {
+                    add_debug_info("Failed to broadcast a new enemy rat king at " + king_pos);
+                }
+            } else {
+                this.queue_message(new EnemyRatKingFound(king_pos, this.id));
+                add_debug_info("Found a new rat king at " + king_pos);
+            }
+        }
     }
 
     /// Marks a record of an Enemy Rat King as Dead.
-    /// Wrapper for {@link #handle_enemy_rat_king}
     /// @param king_id the ID of the now-dead King.
     public void mark_enemy_rat_king_dead(int king_id) {
-        handle_enemy_rat_king(new MapLocation(0,0), king_id, EnemyRatKingPosition.LifeStatus.Dead);
-    }
-
-    /// Update an Enemy Rat King according to the given parameters.
-    /// @param king_id the ID of the relevant King.
-    /// @param king_pos the location of the relevant King.
-    /// @param status the status of the relevant king (living or dead).
-    public void handle_enemy_rat_king(MapLocation king_pos, int king_id, EnemyRatKingPosition.LifeStatus status) {
-        // apparently .equals works with null values so im safe to not check first if it exists
-        boolean has_changed = (Objects.equals(this.enemy_rat_kings.get(id), new EnemyRatKingPosition(king_pos, king_id, EnemyRatKingPosition.LifeStatus.Alive)));
-        this.enemy_rat_kings.put(king_id, new EnemyRatKingPosition(king_pos, king_id, status));
-        if (this.is_king && has_changed) {
-            System.out.println(this.broadcast_enemy_king(king_pos).message);
+        EnemyRatKingPosition entry = enemy_rat_kings.get(king_id);
+        if (entry != null) {
+            entry.status = EnemyRatKingPosition.LifeStatus.Dead;
+            enemy_rat_kings.put(king_id, entry);
+            add_debug_info("Marked king " + king_id + " as dead");
         }
     }
+
 
     /// Broadcasts a Cat Waypoint to the first available channel.
     /// Wrapper for {@link #broadcast_coordinates}.
