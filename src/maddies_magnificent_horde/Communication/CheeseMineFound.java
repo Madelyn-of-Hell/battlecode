@@ -22,12 +22,7 @@ public int message_id(){return 12;}
 
     @Override
     public void handle(RobotPlayer[] robot) {
-        if (!robot[0].cheese_mines().contains(this.mine_position)) {
-            robot[0].add_cheese_mine(this.mine_position);
-        }
-        if (robot[0].is_king()) {
-            robot[0].add_cheese_mine(this.mine_position);
-        }
+        robot[0].add_cheese_mine(this.mine_position);
     }
 
     @Override

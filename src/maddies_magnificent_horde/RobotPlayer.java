@@ -16,6 +16,7 @@ public class RobotPlayer {
     // Subject to a lottttttttt of changes (probably) (if i get time to tweak stuff)
     public static final int PACK_ATTACK_SIZE = 10;
     static final int CAT_WAYPOINT_DANGER_RADIUS = 4; // this one isn't lol it's just true
+    static final int RAT_CHEESE_RETURN_THRESHOLD = 60; // this'll also probs change if I get to the point of tweaking stuff
     static final int CHEESE_SURVIVAL_BUFFER = 100;
     static final int CHEESE_PROSPERITY_RATE = 100;
 
@@ -115,6 +116,7 @@ public class RobotPlayer {
     // Gather mode specific properties
         /// The list of all known Cheese Mines.
         private HashSet<MapLocation> cheese_mines; public HashSet<MapLocation> cheese_mines() {return this.cheese_mines;}
+        private HashSet<MapLocation> known_cheese; public HashSet<MapLocation> known_cheese() {return this.known_cheese;}
         private GatherState gather_state;
         private LinkedList<String> debug_log;
 
@@ -123,7 +125,7 @@ public class RobotPlayer {
         this.is_king = rc.getType() == UnitType.RAT_KING;
         this.current_protocol = RobotProtocol.None;
         this.gather_state = GatherState.None;
-        this.nav_target = Optional.empty();
+        this.clear_nav_target();
         this.rc = rc;
         this.pathfinder = new DStarLite();
         this.king_loc = this.parse_broadcast(1);
@@ -145,7 +147,7 @@ public class RobotPlayer {
 
     private MapLocation parse_broadcast(int channel) {
         try {
-            int data = this.rc.readSharedArray(1);
+            int data = this.rc.readSharedArray(channel);
             return new MapLocation(
                     Communication.mask(data >>> 5, 5) << 1,
                     Communication.mask(data, 5) << 1
@@ -172,13 +174,13 @@ public class RobotPlayer {
             } catch (GameActionException e) {
                 // There is NO reason either of these should ever occur, but I don't want to include throws error on the function because I'll forget about it for something important.
                 System.out.print("Couldn't add the shared key to the array because ");
-                System.out.println(e.getMessage());
+                throw new RuntimeException(e);
             }
         } else {
             try { robot.shared_key = rc.readSharedArray(0); } catch (GameActionException e) {
                 // There is NO reason either of these should ever occur, but I don't want to include throws error on the function because I'll forget about it for something important.
                 System.out.print("Couldn't read the shared key from the array because ");
-                System.out.println(e.getMessage());
+                throw new RuntimeException(e);
             }
         }
 
@@ -234,10 +236,13 @@ public class RobotPlayer {
     private void observe() {
         this.position = this.rc.getLocation();
 
+        // Cheese should only be known for a turn—otherwise you'll get maaaaassive backlogs of old cheese to sift through, and big iterators are the death knell of bytecode limits in ts
+        this.known_cheese.clear();
         for (MapInfo detail : this.rc.senseNearbyMapInfos()) {
-            if (detail.hasCheeseMine()){this.add_cheese_mine(detail.getMapLocation());}
-            if (detail.isWall()){this.add_wall(detail.getMapLocation());}
-            if (detail.getTrap() == TrapType.RAT_TRAP){}
+            if (detail.hasCheeseMine()) {this.add_cheese_mine(detail.getMapLocation());}
+            if (detail.getCheeseAmount() > 0) {this.known_cheese.add(detail.getMapLocation());}
+            if (detail.isWall()) {this.add_wall(detail.getMapLocation());}
+            if (detail.getTrap() == TrapType.RAT_TRAP) {}
         }
 
         for (RobotInfo other_robot : this.rc.senseNearbyRobots()) {
@@ -318,9 +323,56 @@ public class RobotPlayer {
     private void gather() {
         this.add_debug_info("Gather Mode");
         switch (this.gather_state) {
-            case Returning: {}
-            case Traveling: {}
-            case Grabbing: {}
+            case Returning: {
+                this.add_debug_info("Returning home to the king.");
+                try {
+                    if (this.rc.canTransferCheese(this.king_loc(), this.rc.getRawCheese())) {
+                        this.rc.transferCheese(this.king_loc(), this.rc.getRawCheese());
+                        this.gather_state = GatherState.None;
+                        this.clear_nav_target();
+                    }
+                } catch (GameActionException e) {throw new RuntimeException(e);}
+                break;
+            }
+            case Traveling: {
+                if (this.position().distanceSquaredTo(this.nav_target().get()) <= 4 && this.rc.canTurn()) {
+                    this.add_debug_info("Camping the mine at " + this.nav_target().get());
+                    this.add_debug_info("Cheese I sees: " + this.known_cheese.toString());
+                    try {
+                        this.rc.turn(this.rc.getDirection().rotateLeft());
+                    } catch (GameActionException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    this.add_debug_info("Going to the mine at " + this.nav_target.get());
+                }
+                if (!this.known_cheese.isEmpty()) {
+                    this.gather_state = GatherState.Grabbing;
+                    this.set_nav_target(known_cheese.stream().findFirst().get());
+                    this.add_debug_info("Diverting for cheese at " + this.nav_target().get());
+                }
+                break;
+            }
+            case Grabbing: {
+                if (this.rc.canSenseLocation(this.nav_target().get())) {
+                    try {
+                        if (this.rc.senseMapInfo(this.nav_target().get()).getCheeseAmount() == 0) {
+                            this.clear_nav_target();
+                            this.gather_state = GatherState.None;
+                            break;
+                        }
+                    } catch (GameActionException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                this.add_debug_info("Grabbing the cheese at " + this.nav_target().get());
+                if (this.rc.canPickUpCheese(this.nav_target().get())) {
+                    grab_cheese();
+                    this.clear_nav_target();
+                    this.gather_state = GatherState.None; // Yes I could pipe straight back into grabbing another one but I find it to be clearn this way and it's not like I'm short rats.
+                    break;
+                }
+            }
             case None: {
                 if (this.known_cheese.isEmpty()) {
                     if (this.cheese_mines.isEmpty()) {
@@ -328,11 +380,34 @@ public class RobotPlayer {
                         this.set_protocol(RobotProtocol.Explore);
                         this.explore_terminus = Optional.of(ExploreTerminus.CheeseFound);
                         break;
+                    } else {
+                        this.gather_state = GatherState.Traveling;
+                        Object[] options = this.cheese_mines.toArray();
+                        this.set_nav_target((MapLocation) options[this.rng.nextInt(1,options.length+1)-1]);
+                        add_debug_info("Selecting the traveling state");
                     }
+                } else {
+                    this.gather_state = GatherState.Grabbing;
+                    this.set_nav_target(this.known_cheese.stream().findFirst().get());
+                    add_debug_info("Selecting the grabbing state");
                 }
+                break;
             }
         }
+        if (this.rc.getRawCheese() >= RAT_CHEESE_RETURN_THRESHOLD) {
+            this.gather_state = GatherState.Returning;
+            this.set_nav_target(this.king_loc());
+        }
     }
+
+    private void grab_cheese() {
+        try {
+            this.rc.pickUpCheese(this.nav_target().get());
+            this.known_cheese.remove(this.nav_target().get());
+        } catch  (GameActionException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     /// Form a pack, hunt down enemy Kings, kill them, report back.
@@ -345,14 +420,14 @@ public class RobotPlayer {
     private void propagate() {
         int rats = this.rats_made();
         this.add_debug_info("Rats: " + (rats + 2) + " ± 2");
-        if (rats <= 20) {
+        if (rats < 20) {
             for (MapLocation i: this.king_spawn_locs()) {
                 if (this.rc.canBuildRat(i)) {
                     try {
                         this.rc.buildRat(i);
                     } catch (GameActionException e) {throw new RuntimeException("Failed something definitely shown to be possible on turn" + this.rc.getRoundNum());}
 
-                    RobotProtocol new_protocol = RobotProtocol.Explore;
+                    RobotProtocol new_protocol = this.rng.nextInt(3) == 0 ? RobotProtocol.Explore : RobotProtocol.Gather;
                     try {
                         this.queue_message(new NewRatProtocol(
                                 new_protocol,
@@ -391,12 +466,12 @@ public class RobotPlayer {
             }
             if (this.has_message_for_king()) {
                 this.add_debug_info("Heading Home");
-                this.nav_target = Optional.of(this.king_loc());
+                this.set_nav_target(this.king_loc());
                 this.explore_mode = ExploreMode.Reporting;
             }
         } else {
             if (!this.has_message_for_king()) {
-                this.nav_target = Optional.empty();
+                this.clear_nav_target();
                 this.explore_mode = ExploreMode.Exploring;
             } else {
                 this.add_debug_info("Heading Home. Distance remaining: " + this.position().distanceSquaredTo(this.king_loc()));
@@ -405,10 +480,11 @@ public class RobotPlayer {
         if (this.explore_terminus.isPresent()) {
             switch (this.explore_terminus.get()) {
                 case EnemyRatKingFound: {
+                    this.add_debug_info("Terminus: Rat King ");
                     if (!this.enemy_rat_kings().isEmpty()) {
                         this.set_protocol(RobotProtocol.Attack);
                         this.attack_state = AttackState.Pathing;
-                        this.nav_target = Optional.of(this.enemy_rat_kings().stream().findFirst().get());
+                        this.set_nav_target(this.enemy_rat_kings().stream().findFirst().get());
                         this.queue_message(
                                 new RatPackReassemble(
                                         this.nav_target.get(),
@@ -418,8 +494,11 @@ public class RobotPlayer {
                     }
                 }
                 case CheeseFound: {
+                    this.add_debug_info("Terminus: Cheese Found");
                     if (!this.known_cheese().isEmpty() || !this.cheese_mines.isEmpty()) {
                         this.set_protocol(RobotProtocol.Gather);
+                        this.gather_state = GatherState.None;
+                        this.clear_nav_target();
                     }
                 }
             }
@@ -436,7 +515,7 @@ public class RobotPlayer {
         places.add(new MapLocation(width, height));
         places.add(new MapLocation(width >> 1, height >> 1));
         if (this.nav_target.isPresent()) { places.remove(this.nav_target.get()); }
-        this.nav_target = Optional.of(places.get(this.rng.nextInt(places.size())));
+        this.set_nav_target(places.get(this.rng.nextInt(places.size())));
         this.add_debug_info("Heading now to " + this.nav_target.get());
     }
 
@@ -448,7 +527,9 @@ public class RobotPlayer {
             // TODO: Figure out how to prevent interpretation of enemy comms. Can't just use sense because that requires looking and we can't turn that much.
             Communication comm = Communication.parse(message, this.reference());
             if (comm instanceof CheeseMineFound) {
-                this.add_debug_info("Heard about cheese mine at " + ((CheeseMineFound) comm).mine_position);
+                if (!this.cheese_mines.contains(((CheeseMineFound) comm).mine_position)) {
+                    this.add_debug_info("Heard about cheese mine at " + ((CheeseMineFound) comm).mine_position);
+                }
             }
 //            this.add_debug_info("Message Received: " + Integer.toBinaryString(comm.package_message()));
             comm.handle(this.reference());
@@ -691,25 +772,36 @@ public class RobotPlayer {
     }
     private void navigate_naive() {
         MapLocation target = this.nav_target().get();
-
-        Optional<Direction> direction = this.find_nearest_direction(this.position().directionTo(target));
-        if (direction.isPresent()) {
+        if (this.position() != target) {
+            Optional<Direction> direction = this.find_nearest_direction(this.position().directionTo(target));
+            if (direction.isPresent()) {
+                try {
+                    if (this.rc.canTurn() && direction.get() != Direction.CENTER) {
+                        this.rc.turn(direction.get());
+                    }
+                    if (this.rc.canRemoveDirt(this.position().add(direction.get()))) {
+                        this.rc.removeDirt(this.position().add(direction.get()));
+                    }
+                    if (this.rc.canMove(direction.get())) {
+                        this.rc.move(direction.get());
+                    }
+                } catch (GameActionException e) {
+                    throw new RuntimeException(e);
+                }
+            }
             try {
-                if (this.rc.canTurn()) {this.rc.turn(direction.get());}
-                if (this.rc.canRemoveDirt(this.position().add(direction.get()))) {this.rc.removeDirt(this.position().add(direction.get()));}
-                this.rc.move(direction.get());
-            } catch (GameActionException e) {throw new RuntimeException(e);}
+                this.rc.setIndicatorLine(this.position(), target, 0, 0, 255);
+                this.rc.setIndicatorDot(this.nav_target.get(), 0, 0, 255);
+            } catch (GameActionException e) {
+                System.out.println("Couldn't render a line ;-;");
+            }
         }
-        try {
-            this.rc.setIndicatorLine(this.position(), target, 0, 0, 255);
-            this.rc.setIndicatorDot(this.nav_target.get(), 0, 0, 255);
-        } catch (GameActionException e) {System.out.println("Couldn't render a line ;-;");}
     }
 
     private void navigate_dstar(MapLocation to) {
         // Making to an Optional means I don't have to check if nav_target is present first
         if (!Optional.of(to).equals(this.nav_target)) {
-            this.nav_target = Optional.of(to);
+            this.set_nav_target(to);
             this.pathfinder.init(this.position().x, this.position().y, to.x,to.y);
             this.known_walls.clear();
             this.map_has_changed = true;
@@ -811,5 +903,13 @@ public class RobotPlayer {
                 this.position().add(Direction.EAST).add(Direction.EAST),
                 this.position().add(Direction.WEST).add(Direction.WEST)
         };
+    }
+    public void set_nav_target(MapLocation target) {
+        this.add_debug_info("Targeting " + target);
+//        System.out.println("Targeting " + target + " In protocol" + this.current_protocol.name());
+        this.nav_target = Optional.of(target);
+    }
+    public void clear_nav_target() {
+        this.nav_target = Optional.empty();
     }
 }
