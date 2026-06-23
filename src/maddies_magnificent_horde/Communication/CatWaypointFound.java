@@ -14,15 +14,14 @@ public int message_id(){return 13;}
         this.waypoint_position = new MapLocation(pos_x, pos_y);
         this.sender_id = sender_id;
     }
+    public CatWaypointFound(MapLocation waypoint_position, int sender_id) {
+        this.waypoint_position = waypoint_position;
+        this.sender_id = sender_id;
+    }
 
     @Override
     public void handle(RobotPlayer[] robot) {
-        if (!robot[0].cat_waypoints().contains(this.waypoint_position)) {
-            robot[0].add_cat_waypoint(this.waypoint_position);
-        }
-        if (robot[0].is_king()) {
-            robot[0].add_cat_waypoint(this.waypoint_position);
-        }
+        robot[0].add_cat_waypoint(this.waypoint_position);
     }
 
     @Override
@@ -32,7 +31,7 @@ public int message_id(){return 13;}
 
     @Override
     public boolean terminus_met(RobotPlayer[] robot) {
-        return robot[0].position().distanceSquaredTo(robot[0].king_loc()) < 4;
+        return robot[0].position().distanceSquaredTo(robot[0].king_loc()) < 18;
     }
 
     @Override

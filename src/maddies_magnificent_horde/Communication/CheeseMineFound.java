@@ -37,7 +37,7 @@ public int message_id(){return 12;}
 
     @Override
     public boolean terminus_met(RobotPlayer[] robot) {
-        return robot[0].position().distanceSquaredTo(robot[0].king_loc()) < 4;
+        return robot[0].position().distanceSquaredTo(robot[0].king_loc()) < 18;
     }
 
     @Override

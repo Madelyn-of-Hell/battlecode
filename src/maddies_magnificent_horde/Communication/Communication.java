@@ -63,8 +63,8 @@ public abstract class Communication {
 
     /// Create a shared Key
     /// @return a 10-bit randomly generated integer for the King to broadcast to the SharedArrayBuffer
-    public static int create_key() {
-        return new Random().nextInt(1024);
+    public static int create_key(RobotPlayer[] robot) {
+        return robot[0].rng.nextInt(256);
     }
 
     /// Handle an incoming message appropriately. An abstract parent class for children to override

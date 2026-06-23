@@ -7,6 +7,7 @@ import java.util.stream.Stream;
 import maddies_magnificent_horde.Communication.*;
 import maddies_magnificent_horde.DStarLiteJava.DStarLite;
 import maddies_magnificent_horde.DStarLiteJava.State;
+import maddies_magnificent_horde.ExploreMode;
 
 import static maddies_magnificent_horde.Communication.Communication.compare_id;
 
@@ -33,6 +34,8 @@ public class RobotPlayer {
 
         /// The position of this Rat. Tracked independently of the RobotController.
         private MapLocation position; public MapLocation position() {return this.position;}
+        /// The position of the friendly King.
+        private MapLocation king_loc; public MapLocation king_loc() {return this.king_loc;}
         /// The Shared Key for the team. Stored in index 0 of the SharedArrayBuffer
         private int shared_key; public int shared_key() {return this.shared_key;}
         /// Whether or not the rat is King
@@ -59,9 +62,10 @@ public class RobotPlayer {
         /// All predicate messages waiting to be acted upon.
         private LinkedList<PredicateMessage> predicate_messages; public LinkedList<PredicateMessage> predicate_messages() {return this.predicate_messages;}
         /// The co-ordinates of all known Cat Waypoints.
-        private LinkedList<MapLocation> cat_waypoints; public LinkedList<MapLocation> cat_waypoints() {return this.cat_waypoints;}
+        private HashSet<MapLocation> cat_waypoints; public HashSet<MapLocation> cat_waypoints() {return this.cat_waypoints;}
         /// The locations, IDs and statuses of all known Enemy Rat Kings.
         private HashMap<Integer, EnemyRatKingPosition> enemy_rat_kings; public HashMap<Integer, EnemyRatKingPosition> enemy_rat_kings() {return this.enemy_rat_kings;}
+        public Random rng;
 
 
     // Attack mode specific Properties
@@ -85,33 +89,38 @@ public class RobotPlayer {
         private int[] shared_array_mirror = new int[64];
         /// The number of rats that have been made by the King.
         public int rats_made() { // see 'new king strategy' for explanation
-            return (int) ((this.rc.getCurrentRatCost() - 10) << 2) / 5;
+            return (int) ((this.rc.getCurrentRatCost() - 10) << 1) / 5;
         }
         private int[] cheese_recap;
         private int[] d_cheese_recap;
     // Explore mode specific properties
         /// The terminus condition for the Rat (if in Explore Mode). None if the rat started in Explore Mode.
         private Optional<ExploreTerminus> explore_terminus;
+        private ExploreMode explore_mode;
     // Gather mode specific properties
         /// The list of all known Cheese Mines.
         private HashSet<MapLocation> cheese_mines; public HashSet<MapLocation> cheese_mines() {return this.cheese_mines;}
+        private LinkedList<String> debug_log;
 
     public RobotPlayer(RobotController rc) {
         this.id = rc.getID();
         this.is_king = rc.getType() == UnitType.RAT_KING;
         this.current_protocol = RobotProtocol.None;
+        this.nav_target = Optional.empty();
         this.rc = rc;
         this.pathfinder = new DStarLite();
         this.king_loc = this.parse_broadcast(1);
         this.queued_messages = new LinkedList<>();
         this.terminus_messages = new LinkedList<>();
         this.predicate_messages = new LinkedList<>();
-        this.cat_waypoints = new LinkedList<>();
+        this.cat_waypoints = new HashSet<>();
         this.cheese_mines = new HashSet<>();
         this.known_walls = new HashSet<>();
         this.known_cheese = new HashSet<>();
         this.debug_log = new LinkedList<>();
+        this.rng = new Random();
         this.cheese_recap = new int[10]; this.d_cheese_recap = new int[10];
+        this.explore_mode = ExploreMode.Exploring;
         Arrays.fill(this.cheese_recap, this.rc.getGlobalCheese());
     }
 
@@ -135,10 +144,11 @@ public class RobotPlayer {
 
         if (robot.is_king) {
             robot.current_protocol = RobotProtocol.Propagate;
-            robot.shared_key = Communication.create_key();
-
+            robot.shared_key = Communication.create_key(robot.reference());
+            System.out.println("SHARED KEY: " + robot.shared_key);
             try {
                 robot.rc.writeSharedArray(0, robot.shared_key);
+                robot.shared_array_mirror[0] = robot.shared_key;
                 robot.broadcast_friendly_king(robot.rc.getLocation());
             } catch (GameActionException e) {
                 // There is NO reason either of these should ever occur, but I don't want to include throws error on the function because I'll forget about it for something important.
@@ -146,8 +156,7 @@ public class RobotPlayer {
                 System.out.println(e.getMessage());
             }
         } else {
-            try { robot.shared_key = Communication.mask(rc.readSharedArray(0), 8); }
-            catch (GameActionException e) {
+            try { robot.shared_key = rc.readSharedArray(0); } catch (GameActionException e) {
                 // There is NO reason either of these should ever occur, but I don't want to include throws error on the function because I'll forget about it for something important.
                 System.out.print("Couldn't read the shared key from the array because ");
                 System.out.println(e.getMessage());
@@ -157,6 +166,7 @@ public class RobotPlayer {
         while (true) {
             robot.map_has_changed = false;
             robot.turn++;
+            robot.add_debug_info(Arrays.toString(robot.shared_array_mirror));
             robot.handle_incoming_communication();
             robot.observe();
 
@@ -182,15 +192,15 @@ public class RobotPlayer {
                     break;
                 }
                 case None: {
+                    robot.add_debug_info("No job...");
                     break;
                 }
             }
 
-            System.out.println("DEBUG LOG");
-            System.out.println(String.join("\n", robot.debug_log));
+            robot.navigate();
             robot.rc.setIndicatorString(String.join("\n", robot.debug_log));
             robot.debug_log.clear();
-
+            robot.handle_outgoing_communication();
             //Turn OVER
             Clock.yield();
         }
@@ -199,7 +209,7 @@ public class RobotPlayer {
     private void debug_log() {
 
     }
-    private void add_debug_info(String info) {
+    public void add_debug_info(String info) {
         this.debug_log.add(info);
     }
     /// Take a look at the surroundings and note down All the Things—other rats, cheese, tiles, etc.
@@ -207,7 +217,6 @@ public class RobotPlayer {
         this.position = this.rc.getLocation();
         for (MapInfo detail : this.rc.senseNearbyMapInfos()) {
             if (detail.hasCheeseMine()){this.add_cheese_mine(detail.getMapLocation());}
-            if (detail.isDirt()){this.add_dirt(detail.getMapLocation());}
             if (detail.isWall()){this.add_wall(detail.getMapLocation());}
             if (detail.getTrap() == TrapType.RAT_TRAP){}
         }
@@ -256,7 +265,7 @@ public class RobotPlayer {
     // TODO: Add Tests
     private void propagate() {
         int rats = this.rats_made();
-        this.add_debug_info("Rats: " + (rats - 2) + " ± 2");
+        this.add_debug_info("Rats: " + (rats + 2) + " ± 2");
         if (rats <= 20) {
             for (MapLocation i: this.king_spawn_locs()) {
                 if (this.rc.canBuildRat(i)) {
@@ -294,14 +303,41 @@ public class RobotPlayer {
     /// Cover as much of the map as is possible, reporting any important discoveries.
     // TODO: Add Tests
     private void explore() {
+        this.add_debug_info("Explore Mode");
+        if (this.explore_mode == ExploreMode.Exploring) {
+            if (this.nav_target.isEmpty()) {
+                this.set_explore_target();
+            } else if (this.position.distanceSquaredTo(this.nav_target.get()) < 4) {
+                this.set_explore_target();
+            }
+        }
     }
+    private void set_explore_target() {
+        int width = this.rc.getMapWidth()-1;
+        int height = this.rc.getMapHeight()-1;
+
+        LinkedList<MapLocation> places = new LinkedList<MapLocation>();
+        places.add(new MapLocation(0, 0));
+        places.add(new MapLocation(width, 0));
+        places.add(new MapLocation(0, height));
+        places.add(new MapLocation(width, height));
+        places.add(new MapLocation(width >> 1, height >> 1));
+        if (this.nav_target.isPresent()) { places.remove(this.nav_target.get()); }
+        this.nav_target = Optional.of(places.get(this.rng.nextInt(places.size())));
+        this.add_debug_info("Heading now to " + this.nav_target.get());
+    }
+
 
     /// Read and handle each incoming squeak as is necessary.
     // TODO: Add Tests
     public void handle_incoming_communication() {
-        for (Message message : this.rc.readSqueaks(-1)) {
+        for (Message message : this.rc.readSqueaks(this.rc.getRoundNum()-1)) {
+            // TODO: Figure out how to prevent interpretation of enemy comms. Can't just use sense because that requires looking and we can't turn that much.
             Communication comm = Communication.parse(message, this.reference());
-            this.add_debug_info("Message Received: " + comm);
+            if (comm instanceof CheeseMineFound) {
+                this.add_debug_info("Heard about cheese mine at " + ((CheeseMineFound) comm).mine_position);
+            }
+            this.add_debug_info("Message Received: " + Integer.toBinaryString(comm.package_message()));
             comm.handle(this.reference());
         }
     }
@@ -311,15 +347,17 @@ public class RobotPlayer {
     /// @param cat_waypoint the position of the Waypoint.
     //TODO: Add Tests
     public void add_cat_waypoint(MapLocation cat_waypoint) {
-        this.cat_waypoints.add(cat_waypoint);
-        this.map_has_changed = true;
-        for (int y = -CAT_WAYPOINT_DANGER_RADIUS; y <= CAT_WAYPOINT_DANGER_RADIUS; y++) {
-            for (int x = -CAT_WAYPOINT_DANGER_RADIUS; y<= CAT_WAYPOINT_DANGER_RADIUS; x++) {
-                this.pathfinder.updateCell(x,y,CAT_WAYPOINT_COST);
+        if (this.cat_waypoints.add(cat_waypoint)) {
+            if (this.is_king) {
+                if (this.broadcast_cat_waypoint(cat_waypoint).success) {
+                    add_debug_info("Broadcast a new cat waypoint at " + cat_waypoint);
+                } else {
+                    add_debug_info("Failed to broadcast a new cat waypoint at " + cat_waypoint);
+                }
+            } else {
+                this.queue_message(new CatWaypointFound(cat_waypoint, this.id()));
+                add_debug_info("Found a new cat waypoint at " + cat_waypoint);
             }
-        }
-        if (this.is_king) {
-            System.out.println(this.broadcast_cat_waypoint(cat_waypoint).message);
         }
     }
 
@@ -328,24 +366,22 @@ public class RobotPlayer {
     //TODO: Add Tests
     public void add_cheese_mine(MapLocation cheese_mine) {
         if (this.cheese_mines.add(cheese_mine)) {
-            System.out.println("Found Cheese Mine at " + cheese_mine);
-            this.queue_message(new CheeseMineFound(cheese_mine, this.id));
-            if (this.is_king) {
-                System.out.println(this.broadcast_cheese_mine(cheese_mine).message);
+            if (this.is_king()) {
+                if (this.broadcast_cheese_mine(cheese_mine).success) {
+                    add_debug_info("Broadcast a new cheese mine at " + cheese_mine);
+                } else {
+                    add_debug_info("Failed to broadcast a new cheese mine at " + cheese_mine);
+                }
+            } else {
+                this.queue_message(new CheeseMineFound(cheese_mine, this.id));
+                add_debug_info("Found a new cheese mine at " + cheese_mine);
             }
-        } else {
-            System.out.println("Already knew about Cheese Mine at " + cheese_mine);
         }
     }
 
-    private void add_dirt(MapLocation dirt) {
-        this.map_has_changed = true;
-        this.pathfinder.updateCell(dirt.x, dirt.y, DIRT_COST);
-    }
     private void add_wall(MapLocation wall) {
 
         if (this.known_walls.add(wall)) {
-            System.out.println("Adding wall: " + wall);
             this.pathfinder.updateCell(wall.x, wall.y, WALL_COST);
             this.map_has_changed = true;
         }
@@ -538,16 +574,28 @@ public class RobotPlayer {
         this.known_pack_members.add(id);
     }
 
-    private void navigate_naive(MapLocation to) {
-        Optional<Direction> direction = this.find_nearest_direction(this.position().directionTo(to));
-        if (direction.isPresent()) {
-            try {
-                this.rc.move(direction.get());
-            } catch (GameActionException e) {
-                System.out.println(e);
-            }
+    public void navigate() {
+        if (this.nav_target.isPresent()) {
+            this.navigate_naive();
         }
     }
+    private void navigate_naive() {
+        MapLocation target = this.nav_target().get();
+        try {
+            this.rc.setIndicatorLine(this.position(), target, 0, 0, 255);
+            this.rc.setIndicatorDot(this.nav_target.get(), 0, 0, 255);
+        } catch (GameActionException e) {System.out.println("Couldn't render a line ;-;");}
+
+        Optional<Direction> direction = this.find_nearest_direction(this.position().directionTo(target));
+        if (direction.isPresent()) {
+            try {
+                if (this.rc.canTurn()) {this.rc.turn(direction.get());}
+                if (this.rc.canRemoveDirt(this.position().add(direction.get()))) {this.rc.removeDirt(this.position().add(direction.get()));}
+                this.rc.move(direction.get());
+            } catch (GameActionException e) {throw new RuntimeException(e);}
+        }
+    }
+
     private void navigate_dstar(MapLocation to) {
         // Making to an Optional means I don't have to check if nav_target is present first
         if (!Optional.of(to).equals(this.nav_target)) {
@@ -619,105 +667,14 @@ public class RobotPlayer {
 
     private Optional<Direction> find_nearest_direction(Direction direction) {
         final HashMap<Direction, Direction[]> direction_map = new HashMap<>();
-        direction_map.put(Direction.EAST, new Direction[]{
-                Direction.EAST,
-                Direction.NORTHEAST,
-                Direction.SOUTHEAST,
-                Direction.NORTH,
-                Direction.SOUTH,
-                Direction.NORTHWEST,
-                Direction.SOUTHWEST,
-                Direction.WEST
-        });
-        direction_map.put(
-                Direction.NORTHEAST, new Direction[]{
-                        Direction.NORTHEAST,
-                        Direction.EAST,
-                        Direction.NORTH,
-                        Direction.SOUTHEAST,
-                        Direction.NORTHWEST,
-                        Direction.SOUTH,
-                        Direction.WEST,
-                        Direction.SOUTHWEST
-        });
-        direction_map.put(
-                Direction.SOUTHEAST, new Direction[]{
-                        Direction.SOUTHEAST,
-                        Direction.EAST,
-                        Direction.SOUTH,
-                        Direction.NORTHEAST,
-                        Direction.SOUTHWEST,
-                        Direction.NORTH,
-                        Direction.WEST,
-                        Direction.NORTHWEST
-        });
-        direction_map.put(
-                Direction.NORTH, new Direction[]{
-                        Direction.NORTH,
-                        Direction.NORTHWEST,
-                        Direction.NORTHEAST,
-                        Direction.WEST,
-                        Direction.EAST,
-                        Direction.SOUTHWEST,
-                        Direction.SOUTHEAST,
-                        Direction.SOUTH
-                }
-        );
-        direction_map.put(
-                Direction.SOUTH, new Direction[]{
-                        Direction.SOUTH,
-                        Direction.SOUTHEAST,
-                        Direction.SOUTHWEST,
-                        Direction.EAST,
-                        Direction.WEST,
-                        Direction.NORTHWEST,
-                        Direction.NORTHEAST,
-                        Direction.NORTH
-                }
-        );
-        direction_map.put(
-                Direction.NORTHWEST, new Direction[]{
-                        Direction.NORTHWEST,
-                        Direction.WEST,
-                        Direction.NORTH,
-                        Direction.SOUTHWEST,
-                        Direction.NORTHEAST,
-                        Direction.SOUTH,
-                        Direction.EAST,
-                        Direction.SOUTHEAST
-                }
-        );
-        direction_map.put(
-                Direction.SOUTHWEST, new Direction[]{
-                        Direction.SOUTHWEST,
-                        Direction.SOUTH,
-                        Direction.WEST,
-                        Direction.SOUTHEAST,
-                        Direction.NORTHWEST,
-                        Direction.EAST,
-                        Direction.NORTH,
-                        Direction.NORTHEAST
-                }
-        );
-        direction_map.put(
-                Direction.WEST, new Direction[]{
-                        Direction.WEST,
-                        Direction.SOUTHWEST,
-                        Direction.NORTHWEST,
-                        Direction.SOUTH,
-                        Direction.NORTH,
-                        Direction.SOUTHEAST,
-                        Direction.NORTHEAST,
-                        Direction.EAST
-                }
-        );
-        if (direction == Direction.CENTER) {
-            System.out.println("We don't serve centrists here");
-            return Optional.empty();
-        }
-        for (int i = 0; i < 8; i++) {
-            if (this.rc.canMove(direction_map.get(direction)[i])) {
-                return Optional.of(direction_map.get(direction)[i]);
+        boolean direction_found = false;
+        for (int r = 0; r < 8; r++) {
+            Direction test_direction = direction;
+            for (int dr = 0; dr < r; dr++) {
+                test_direction = r % 2 == 0 ? test_direction.rotateLeft() : test_direction.rotateRight();
+            }
+            if (this.rc.canMove(test_direction) || this.rc.canRemoveDirt(this.position().add(test_direction))) {
+                return Optional.of(test_direction);
             }
         }
         return Optional.empty();
