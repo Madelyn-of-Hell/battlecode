@@ -29,7 +29,7 @@ public int message_id(){return 0;}
     public void handle(RobotPlayer[] robot) {
         if (compare_id(robot[0].id(), this.target_rat_id)) {
             robot[0].set_protocol(this.prescribed_protocol);
-            robot[0].queue_message(new NewRatProtocolAcknowledge(prescribed_protocol, robot[0].id()));
+//            robot[0].queue_message(new NewRatProtocolAcknowledge(prescribed_protocol, robot[0].id()));
         }
     }
 

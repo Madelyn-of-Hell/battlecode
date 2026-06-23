@@ -217,6 +217,7 @@ public class RobotPlayer {
     /// Sort messages by importance, shoot off the most important one, then clear it out if its terminus condition has been reached
     // TODO: Add Tests
     private void handle_outgoing_communication() {
+        this.add_debug_info("Outbound Messages: " + this.queued_messages.size());
         this.queued_messages.sort((o1, o2) -> {
             if (o1.message_id() < o2.message_id()) {
                 return -1;
@@ -229,10 +230,11 @@ public class RobotPlayer {
 
         for (Communication message : this.queued_messages) {
             if (message.predicate_met(this.reference())) {
-                System.out.println(message);
-                System.out.println("Sending Message: " + Integer.toBinaryString(message.package_message()) + " Encrypted: " + Integer.toBinaryString(message.render(this.reference())) + " Shared key: " + Integer.toBinaryString(this.shared_key()) + " Message ID: " + Integer.toBinaryString(message.message_id()));
+                this.add_debug_info("Sending a message of type " + Integer.toBinaryString(message.message_id()));
+//                System.out.println("Sending Message: " + Integer.toBinaryString(message.package_message()) + " Encrypted: " + Integer.toBinaryString(message.render(this.reference())) + " Shared key: " + Integer.toBinaryString(this.shared_key()) + " Message ID: " + Integer.toBinaryString(message.message_id()));
                 this.rc.squeak(message.render(this.reference()));
                 if (message.terminus_met(this.reference())) {
+                    this.add_debug_info("Removed " + Integer.toBinaryString(message.message_id()) + " from the queue");
                     this.queued_messages.remove(message);
                 }
                 break;
@@ -254,7 +256,7 @@ public class RobotPlayer {
     // TODO: Add Tests
     private void propagate() {
         int rats = this.rats_made();
-        System.out.println("Rats: " + (rats - 2) + " ± 2");
+        this.add_debug_info("Rats: " + (rats - 2) + " ± 2");
         if (rats <= 20) {
             for (MapLocation i: this.king_spawn_locs()) {
                 if (this.rc.canBuildRat(i)) {
