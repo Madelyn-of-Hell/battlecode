@@ -382,6 +382,28 @@ public class RobotPlayer {
                 this.add_debug_info("Heading Home. Distance remaining: " + this.position().distanceSquaredTo(this.king_loc()));
             }
         }
+        if (this.explore_terminus.isPresent()) {
+            switch (this.explore_terminus.get()) {
+                case EnemyRatKingFound: {
+                    if (!this.enemy_rat_kings().isEmpty()) {
+                        this.set_protocol(RobotProtocol.Attack);
+                        this.attack_state = AttackState.Pathing;
+                        this.nav_target = Optional.of(this.enemy_rat_kings().stream().findFirst().get());
+                        this.queue_message(
+                                new RatPackReassemble(
+                                        this.nav_target.get(),
+                                        this.id()
+                                )
+                        );
+                    }
+                }
+                case CheeseFound: {
+                    if (!this.known_cheese().isEmpty() || !this.cheese_mines.isEmpty()) {
+                        this.set_protocol(RobotProtocol.Gather);
+                    }
+                }
+            }
+        }
     }
     private void set_explore_target() {
         int width = this.rc.getMapWidth()-1;
@@ -614,7 +636,8 @@ public class RobotPlayer {
                     message instanceof CatWaypointFound ||
                     message instanceof CheeseMineFound ||
                     message instanceof EnemyRatKingFound ||
-                    message instanceof RatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs
+                    message instanceof RatPackHeyHiHowAreYouWeKilledTheKingAreYouProudOfUs ||
+                    message instanceof RatPackReassemble
             ) {
                 return true;
             }
@@ -756,7 +779,6 @@ public class RobotPlayer {
     private void add_cheese(MapLocation cheese) {
 
         if (this.known_cheese.add(cheese)) {
-            System.out.println("Added Cheese at " + cheese);
         } else {
 //            System.out.println("Already knew about Cheese at " + cheese);
         }

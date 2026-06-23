@@ -3,6 +3,4 @@ package maddies_magnificent_horde;
 public enum ExploreTerminus {
     EnemyRatKingFound,
     CheeseFound,
-    CheeseMineFound,
-    CheeseMineAdded,
 }

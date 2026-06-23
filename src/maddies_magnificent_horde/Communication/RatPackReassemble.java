@@ -9,17 +9,18 @@ public class RatPackReassemble extends Communication {
 public int message_id(){return 8;}
 
     public MapLocation victim_pos;
-    public int victim_id;
 
     public RatPackReassemble(int decryptedMessage, int sender_id) {
         int pos_x = mask(decryptedMessage >>> 21, 6);
         int pos_y = mask(decryptedMessage >>> 15, 6);
-        int id = mask(decryptedMessage, 15);
         this.victim_pos = new MapLocation(pos_x, pos_y);
-        this.victim_id = id;
         this.sender_id = sender_id;
     }
 
+    public RatPackReassemble(MapLocation target, int sender_id) {
+        this.victim_pos = target;
+        this.sender_id = sender_id;
+    }
 
     @Override
     public void handle(RobotPlayer[] robot) {
@@ -30,7 +31,6 @@ public int message_id(){return 8;}
             robot[0].set_protocol(RobotProtocol.Attack);
             robot[0].add_pack_member(this.sender_id);
             robot[0].set_target_king_loc(this.victim_pos);
-            robot[0].set_target_king_id(this.victim_id);
             robot[0].queue_message(this);
         }
     }
@@ -42,11 +42,11 @@ public int message_id(){return 8;}
 
     @Override
     public boolean terminus_met(RobotPlayer[] robot) {
-        return robot[0].terminus_messages().contains(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, message_id()));
+        return robot[0].position().distanceSquaredTo(robot[0].king_loc()) < 18;
     }
 
     @Override
     public int package_message() {
-        return message_id() << 27 | Communication.mask(victim_pos.x, 6) << 21 | Communication.mask(victim_pos.y, 6) << 15 | Communication.mask(victim_id, 15);
+        return message_id() << 27 | Communication.mask(victim_pos.x, 6) << 21 | Communication.mask(victim_pos.y, 6) << 15;
     }
 }
