@@ -1,13 +1,12 @@
 package maddies_magnificent_horde;
 
 import battlecode.common.*;
+
 import java.util.*;
-import java.util.stream.Stream;
 
 import maddies_magnificent_horde.Communication.*;
 import maddies_magnificent_horde.DStarLiteJava.DStarLite;
 import maddies_magnificent_horde.DStarLiteJava.State;
-import maddies_magnificent_horde.ExploreMode;
 
 import static maddies_magnificent_horde.Communication.Communication.compare_id;
 
@@ -28,44 +27,60 @@ public class RobotPlayer {
     public static final double DIRT_COST = 2;
     // Perpetually used properties
 
-        // Basics
-        /// The Rat's ID. Provided by {@link RobotController}.
-        private final int id; public int id() {return this.id;}
+    // Basics
+    /// The Rat's ID. Provided by {@link RobotController}.
+    private final int id; public int id() {return this.id;}
 
-        /// The position of this Rat. Tracked independently of the RobotController.
-        private MapLocation position; public MapLocation position() {return this.position;}
-        /// The position of the friendly King.
-        private MapLocation king_loc; public MapLocation king_loc() {return this.king_loc;}
-        /// The Shared Key for the team. Stored in index 0 of the SharedArrayBuffer
-        private int shared_key; public int shared_key() {return this.shared_key;}
-        /// Whether or not the rat is King
-        private final boolean is_king; public boolean is_king() {return this.is_king;}
-        /// The currently implemented protocol for this Rat.
-        private RobotProtocol current_protocol; public RobotProtocol current_protocol() {return this.current_protocol;}
-        /// The RobotController interface
-        public RobotController rc;
+    /// The position of this Rat. Tracked independently of the RobotController.
+    private MapLocation position; public MapLocation position() {return this.position;}
+
+    /// The position of the friendly King.
+    private MapLocation king_loc;
+
+    public MapLocation king_loc() {
+        return this.king_loc;
+    }
+
+    /// The Shared Key for the team. Stored in index 0 of the SharedArrayBuffer
+    private int shared_key; public int shared_key() {return this.shared_key;}
+
+    /// Whether or not the rat is King
+    private final boolean is_king; public boolean is_king() {return this.is_king;}
+
+    /// The currently implemented protocol for this Rat.
+    private RobotProtocol current_protocol; public RobotProtocol current_protocol() {return this.current_protocol;}
+
+    /// The RobotController interface
+    public RobotController rc;
+    private int broadcast_mine_count;
+    private int broadcast_cat_count;
 
 
-        // Collections
-        /// The pathfinder of the D* implementation I aped.
-        private DStarLite pathfinder;
-        /// The current target being navigated to. May be None if not navving somewhere.
-        private Optional<MapLocation> nav_target; public Optional<MapLocation> nav_target() {return this.nav_target;}
+    // Collections
+    /// The pathfinder of the D* implementation I aped.
+    private DStarLite pathfinder;
+    /// The current target being navigated to. May be None if not navving somewhere.
+    private Optional<MapLocation> nav_target; public Optional<MapLocation> nav_target() {return this.nav_target;}
 
-        private boolean map_has_changed;
-        private int path_index;
-        private HashSet<MapLocation> known_walls;
-        /// All messages currently in the outbound queue.
-        private LinkedList<Communication> queued_messages; public LinkedList<Communication> queued_messages() {return this.queued_messages;}
-        /// All terminus messages waiting to be acted upon.
-        private LinkedList<TerminusMessage>  terminus_messages; public LinkedList<TerminusMessage> terminus_messages() {return this.terminus_messages;}
-        /// All predicate messages waiting to be acted upon.
-        private LinkedList<PredicateMessage> predicate_messages; public LinkedList<PredicateMessage> predicate_messages() {return this.predicate_messages;}
-        /// The co-ordinates of all known Cat Waypoints.
-        private HashSet<MapLocation> cat_waypoints; public HashSet<MapLocation> cat_waypoints() {return this.cat_waypoints;}
-        /// The locations, IDs and statuses of all known Enemy Rat Kings.
-        private HashMap<Integer, EnemyRatKingPosition> enemy_rat_kings; public HashMap<Integer, EnemyRatKingPosition> enemy_rat_kings() {return this.enemy_rat_kings;}
-        public Random rng;
+    private boolean map_has_changed;
+    private int path_index;
+    private HashSet<MapLocation> known_walls;
+    /// All messages currently in the outbound queue.
+    private LinkedList<Communication> queued_messages; public LinkedList<Communication> queued_messages() {return this.queued_messages;}
+
+    /// All terminus messages waiting to be acted upon.
+    private LinkedList<TerminusMessage>  terminus_messages; public LinkedList<TerminusMessage> terminus_messages() {return this.terminus_messages;}
+
+    /// All predicate messages waiting to be acted upon.
+    private LinkedList<PredicateMessage> predicate_messages; public LinkedList<PredicateMessage> predicate_messages() {return this.predicate_messages;}
+
+    /// The co-ordinates of all known Cat Waypoints.
+    private HashSet<MapLocation> cat_waypoints; public HashSet<MapLocation> cat_waypoints() {return this.cat_waypoints;}
+
+    /// The locations, IDs and statuses of all known Enemy Rat Kings.
+    private HashSet<MapLocation> enemy_rat_kings; public HashSet<MapLocation> enemy_rat_kings() {return this.enemy_rat_kings;}
+
+    public Random rng;
 
 
     // Attack mode specific Properties
@@ -113,7 +128,7 @@ public class RobotPlayer {
         this.queued_messages = new LinkedList<>();
         this.terminus_messages = new LinkedList<>();
         this.predicate_messages = new LinkedList<>();
-        this.enemy_rat_kings = new HashMap<>();
+        this.enemy_rat_kings = new HashSet<>();
         this.cat_waypoints = new HashSet<>();
         this.cheese_mines = new HashSet<>();
         this.known_walls = new HashSet<>();
@@ -167,7 +182,9 @@ public class RobotPlayer {
         while (true) {
             robot.map_has_changed = false;
             robot.turn++;
-            robot.add_debug_info(Arrays.toString(robot.shared_array_mirror));
+            if (robot.is_king()) {
+                robot.add_debug_info(Arrays.toString(robot.shared_array_mirror));
+            }
             robot.handle_incoming_communication();
             robot.observe();
 
@@ -207,25 +224,61 @@ public class RobotPlayer {
         }
     }
 
-    private void debug_log() {
-
-    }
     public void add_debug_info(String info) {
         this.debug_log.add(info);
     }
     /// Take a look at the surroundings and note down All the Things—other rats, cheese, tiles, etc.
     private void observe() {
         this.position = this.rc.getLocation();
+
         for (MapInfo detail : this.rc.senseNearbyMapInfos()) {
             if (detail.hasCheeseMine()){this.add_cheese_mine(detail.getMapLocation());}
             if (detail.isWall()){this.add_wall(detail.getMapLocation());}
             if (detail.getTrap() == TrapType.RAT_TRAP){}
         }
+
         for (RobotInfo other_robot : this.rc.senseNearbyRobots()) {
             if (other_robot.type == UnitType.RAT_KING && other_robot.getTeam() != rc.getTeam()){
-                this.add_enemy_rat_king(other_robot.location, other_robot.ID);
+                this.add_enemy_rat_king(other_robot.location);
             }
         }
+        if (!is_king()) { // Sync
+            try {
+                // Enemy Kings
+                for (int channel = 6; channel <= 10; channel++) {
+                    this.shared_array_mirror[channel] = this.rc.readSharedArray(channel);
+                    if (this.shared_array_mirror[channel] != 0) {
+                        this.enemy_rat_kings.add(this.parse_broadcast(channel));
+                    } else {
+                        this.enemy_rat_kings.remove(this.parse_broadcast(channel));
+                    }
+                }
+
+                //Cats
+                final int CAT_INDEX_OFFSET = 11;
+                int val = this.rc.readSharedArray(CAT_INDEX_OFFSET + broadcast_cat_count);
+                while (val != 0 && CAT_INDEX_OFFSET + broadcast_cat_count <= 37) {
+                    this.shared_array_mirror[CAT_INDEX_OFFSET + broadcast_cat_count] = val;
+                    this.cat_waypoints.add(this.parse_broadcast(CAT_INDEX_OFFSET + broadcast_cat_count)); // Deliberately bypasses the setter
+                    broadcast_cat_count += 1;
+                    val = this.rc.readSharedArray(CAT_INDEX_OFFSET + broadcast_cat_count);
+                }
+                //Mines
+                final int MINE_INDEX_OFFSET = 38;
+                val = this.rc.readSharedArray(MINE_INDEX_OFFSET + broadcast_mine_count);
+                while (val != 0 && MINE_INDEX_OFFSET + broadcast_mine_count <= 63) {
+                    this.shared_array_mirror[MINE_INDEX_OFFSET + broadcast_mine_count] = val;
+                    this.cheese_mines.add(this.parse_broadcast(MINE_INDEX_OFFSET + broadcast_mine_count)); // Deliberately bypasses the setter
+                    broadcast_mine_count += 1;
+                    val = this.rc.readSharedArray(MINE_INDEX_OFFSET + broadcast_mine_count);
+                }
+            } catch (GameActionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        // Detect Cat Waypoints
+        // Detect Cats
+        // Detect in squeak radius
     }
 
 
@@ -316,6 +369,18 @@ public class RobotPlayer {
             } else if (this.position.distanceSquaredTo(this.nav_target.get()) < 4) {
                 this.set_explore_target();
             }
+            if (this.has_message_for_king()) {
+                this.add_debug_info("Heading Home");
+                this.nav_target = Optional.of(this.king_loc());
+                this.explore_mode = ExploreMode.Reporting;
+            }
+        } else {
+            if (!this.has_message_for_king()) {
+                this.nav_target = Optional.empty();
+                this.explore_mode = ExploreMode.Exploring;
+            } else {
+                this.add_debug_info("Heading Home. Distance remaining: " + this.position().distanceSquaredTo(this.king_loc()));
+            }
         }
     }
     private void set_explore_target() {
@@ -343,7 +408,7 @@ public class RobotPlayer {
             if (comm instanceof CheeseMineFound) {
                 this.add_debug_info("Heard about cheese mine at " + ((CheeseMineFound) comm).mine_position);
             }
-            this.add_debug_info("Message Received: " + Integer.toBinaryString(comm.package_message()));
+//            this.add_debug_info("Message Received: " + Integer.toBinaryString(comm.package_message()));
             comm.handle(this.reference());
         }
     }
@@ -395,9 +460,8 @@ public class RobotPlayer {
 
     /// Adds a record of an Enemy Rat King, or modifies it if one already exists.
     /// @param king_pos the last known location of the King.
-    /// @param king_id the ID of the King.
-    public void add_enemy_rat_king(MapLocation king_pos, int king_id) {
-        if (this.enemy_rat_kings.put(king_id, new EnemyRatKingPosition(king_pos, king_id, EnemyRatKingPosition.LifeStatus.Alive)) == null) {
+    public void add_enemy_rat_king(MapLocation king_pos) {
+        if (this.enemy_rat_kings.add(king_pos)) {
             if (this.is_king()) {
                 if (this.broadcast_enemy_king(king_pos).success) {
                     add_debug_info("Broadcast a new enemy rat king at " + king_pos);
@@ -412,14 +476,9 @@ public class RobotPlayer {
     }
 
     /// Marks a record of an Enemy Rat King as Dead.
-    /// @param king_id the ID of the now-dead King.
-    public void mark_enemy_rat_king_dead(int king_id) {
-        EnemyRatKingPosition entry = enemy_rat_kings.get(king_id);
-        if (entry != null) {
-            entry.status = EnemyRatKingPosition.LifeStatus.Dead;
-            enemy_rat_kings.put(king_id, entry);
-            add_debug_info("Marked king " + king_id + " as dead");
-        }
+    /// @param king_pos the position of the now-dead King.
+    public void remove_enemy_rat_king_dead(MapLocation king_pos) {
+        this.enemy_rat_kings.remove(king_pos);
     }
 
 
@@ -589,10 +648,6 @@ public class RobotPlayer {
     }
     private void navigate_naive() {
         MapLocation target = this.nav_target().get();
-        try {
-            this.rc.setIndicatorLine(this.position(), target, 0, 0, 255);
-            this.rc.setIndicatorDot(this.nav_target.get(), 0, 0, 255);
-        } catch (GameActionException e) {System.out.println("Couldn't render a line ;-;");}
 
         Optional<Direction> direction = this.find_nearest_direction(this.position().directionTo(target));
         if (direction.isPresent()) {
@@ -602,6 +657,10 @@ public class RobotPlayer {
                 this.rc.move(direction.get());
             } catch (GameActionException e) {throw new RuntimeException(e);}
         }
+        try {
+            this.rc.setIndicatorLine(this.position(), target, 0, 0, 255);
+            this.rc.setIndicatorDot(this.nav_target.get(), 0, 0, 255);
+        } catch (GameActionException e) {System.out.println("Couldn't render a line ;-;");}
     }
 
     private void navigate_dstar(MapLocation to) {

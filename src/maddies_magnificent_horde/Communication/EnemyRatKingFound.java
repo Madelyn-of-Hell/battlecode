@@ -28,17 +28,7 @@ public int message_id(){return 11;}
 
     @Override
     public void handle(RobotPlayer[] robot) {
-        Optional<Integer> match_id = this.find_id(robot[0].enemy_rat_kings().keySet());
-
-        if (match_id.isEmpty()) {
-            robot[0].add_enemy_rat_king(this.king_position, this.king_id);
-        } else {
-            robot[0].add_enemy_rat_king(this.king_position, match_id.get());
-        }
-        if (robot[0].is_king()) {
-            robot[0].queue_message(new KingAcknowledgeMessage(message_id(), this.sender_id, robot[0].id()));
-        }
-
+        robot[0].add_enemy_rat_king(this.king_position);
     }
     // Holy jeepers creepers batman I spent like 40 minutes trying to do this inline and it was so painful i had to make it its own method. Im SURE it's not that complicated; it'd be easy as anything in rust, and I suspect the only reason I can't do it in java is because I'm new to java but 🤷‍♀️
     private Optional<Integer> find_id(Set<Integer> ids) {
@@ -56,7 +46,7 @@ public int message_id(){return 11;}
 
     @Override
     public boolean terminus_met(RobotPlayer[] robot) {
-        return robot[0].terminus_messages().contains(new TerminusMessage(TerminusMessageType.KingAcknowledgeMessage, message_id()));
+        return robot[0].position().distanceSquaredTo(robot[0].king_loc()) < 18;
     }
 
     @Override

@@ -36,6 +36,6 @@ public int message_id(){return 13;}
 
     @Override
     public int package_message() {
-        return message_id() << 27 | mask(waypoint_position.x, 6)  << 21 | mask(waypoint_position.y, 6) << 15;
+        return message_id() << 27 | mask(waypoint_position.x, 6) << 21 | mask(waypoint_position.y, 6) << 15;
     }
 }
