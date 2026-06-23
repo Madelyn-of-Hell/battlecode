@@ -140,7 +140,7 @@ public class RobotPlayer {
         this.debug_log = new LinkedList<>();
         this.explore_terminus = Optional.empty();
         this.rng = new Random();
-        this.cheese_recap = new int[10]; this.d_cheese_recap = new int[10];
+        this.cheese_recap = new int[100];
         this.explore_mode = ExploreMode.Exploring;
         Arrays.fill(this.cheese_recap, this.rc.getGlobalCheese());
     }
@@ -881,12 +881,16 @@ public class RobotPlayer {
         }
         return Optional.empty();
     }
-    private int global_cheese_rate() {
-        this.cheese_recap[this.turn % 10] = this.rc.getGlobalCheese();
-        this.d_cheese_recap[this.turn % 10] = this.cheese_recap[this.turn % 10] - this.cheese_recap[(this.turn-1) % 10];
-        this.add_debug_info("d(cheese)/dt = " + this.d_cheese_recap[this.turn % 10]);
+    private float global_cheese_rate() {
+        this.cheese_recap[this.turn % this.cheese_recap.length] = this.rc.getGlobalCheese();
+        float d_cheese = 0;
+        for (int d = 0; d < this.cheese_recap.length; d++) {
+            d_cheese += (this.rc.getGlobalCheese() - this.cheese_recap[(this.turn + d) % this.cheese_recap.length]) / (d + 1);
+        }
+        d_cheese /= this.cheese_recap.length;
+        this.add_debug_info("d(cheese)/dt = " + d_cheese + " per turn");
         // I'm not kidding for some reason battlecode's implementation of java can't do sum or average of an array. so.
-        return (this.d_cheese_recap[0] + this.d_cheese_recap[1] + this.d_cheese_recap[2] + this.d_cheese_recap[3] + this.d_cheese_recap[4] + this.d_cheese_recap[5] + this.d_cheese_recap[6] + this.d_cheese_recap[7] + this.d_cheese_recap[8] + this.d_cheese_recap[9]) / 10;
+        return d_cheese;
     }
     private void add_cheese(MapLocation cheese) {
 
