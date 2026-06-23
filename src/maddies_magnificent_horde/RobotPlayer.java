@@ -115,12 +115,14 @@ public class RobotPlayer {
     // Gather mode specific properties
         /// The list of all known Cheese Mines.
         private HashSet<MapLocation> cheese_mines; public HashSet<MapLocation> cheese_mines() {return this.cheese_mines;}
+        private GatherState gather_state;
         private LinkedList<String> debug_log;
 
     public RobotPlayer(RobotController rc) {
         this.id = rc.getID();
         this.is_king = rc.getType() == UnitType.RAT_KING;
         this.current_protocol = RobotProtocol.None;
+        this.gather_state = GatherState.None;
         this.nav_target = Optional.empty();
         this.rc = rc;
         this.pathfinder = new DStarLite();
@@ -134,6 +136,7 @@ public class RobotPlayer {
         this.known_walls = new HashSet<>();
         this.known_cheese = new HashSet<>();
         this.debug_log = new LinkedList<>();
+        this.explore_terminus = Optional.empty();
         this.rng = new Random();
         this.cheese_recap = new int[10]; this.d_cheese_recap = new int[10];
         this.explore_mode = ExploreMode.Exploring;
@@ -313,6 +316,23 @@ public class RobotPlayer {
     /// Seek Cheese and Cheese Mines
     // TODO: Add Tests
     private void gather() {
+        this.add_debug_info("Gather Mode");
+        switch (this.gather_state) {
+            case Returning: {}
+            case Traveling: {}
+            case Grabbing: {}
+            case None: {
+                if (this.known_cheese.isEmpty()) {
+                    if (this.cheese_mines.isEmpty()) {
+                        this.add_debug_info("Switching to Explore in search of cheese mines.");
+                        this.set_protocol(RobotProtocol.Explore);
+                        this.explore_terminus = Optional.of(ExploreTerminus.CheeseFound);
+                        break;
+                    }
+                }
+            }
+        }
+    }
     }
 
     /// Form a pack, hunt down enemy Kings, kill them, report back.
