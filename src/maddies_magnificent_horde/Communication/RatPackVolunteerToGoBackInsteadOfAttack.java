@@ -1,25 +1,23 @@
 package maddies_magnificent_horde.Communication;
 
 import maddies_magnificent_horde.RobotPlayer;
+import maddies_magnificent_horde.RobotProtocol;
 
 public class RatPackVolunteerToGoBackInsteadOfAttack extends Communication {
     @Override
 public int message_id(){return 4;}
 
-    public int pack_id;
-
     public RatPackVolunteerToGoBackInsteadOfAttack(int decryptedMessage, int sender_id) {
-        this.pack_id = mask(decryptedMessage, 27);
         this.sender_id = sender_id;
     }
 
 
     @Override
     public void handle(RobotPlayer[] robot) {
-        if (compare_id(robot[0].pack_id(), this.pack_id)) {
+        if (robot[0].current_protocol() == RobotProtocol.Attack) {
             if (robot[0].is_debriefing().isEmpty()) {
                 robot[0].debrief_opt_in();
-                robot[0].queue_message(new RatPackVolunteerToGoBackInsteadOfAttack(this.pack_id, robot[0].id()));
+                robot[0].queue_message(new RatPackVolunteerToGoBackInsteadOfAttack(0, robot[0].id()));
             }
             if (robot[0].id() > this.sender_id) {
                 robot[0].debrief_opt_out();
@@ -41,6 +39,6 @@ public int message_id(){return 4;}
 
     @Override
     public int package_message() {
-        return message_id() << 27 | Communication.mask(this.pack_id, 27);
+        return message_id() << 27;
     }
 }

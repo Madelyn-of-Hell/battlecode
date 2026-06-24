@@ -8,11 +8,12 @@ public class HeyYouComeJoinMyRatPackSoThatWeCanGoAttack extends Communication {
 public int message_id(){return 10;}
 
     public int pack_size;
-    public int pack_id;
 
     public HeyYouComeJoinMyRatPackSoThatWeCanGoAttack(int decryptedMessage, int sender_id) {
         this.pack_size = mask(decryptedMessage >>> 18, 8);
-        this.pack_id = mask(decryptedMessage, 18);
+        this.sender_id = sender_id;
+    }
+    public HeyYouComeJoinMyRatPackSoThatWeCanGoAttack(int sender_id) {
         this.sender_id = sender_id;
     }
 
@@ -20,11 +21,9 @@ public int message_id(){return 10;}
     @Override
     public void handle(RobotPlayer[] robot) {
         if ( // Sometimes nice formatting is fun :3
-                robot[0].current_protocol() == RobotProtocol.Attack &&
-                robot[0].pack_id() != this.pack_id &&
-                this.pack_size > robot[0].pack_size()
+                robot[0].current_protocol() == RobotProtocol.Attack
         ) {
-            robot[0].join_pack(this.pack_id);
+            robot[0].add_pack_member(this.sender_id);
         }
     }
 
@@ -41,6 +40,6 @@ public int message_id(){return 10;}
 
     @Override
     public int package_message() {
-        return message_id() << 27 | Communication.mask(pack_size, 13) << 14 | Communication.mask(pack_id, 13) << 1;
+        return message_id() << 27 | Communication.mask(pack_size, 13) << 14;
     }
 }

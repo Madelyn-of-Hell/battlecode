@@ -4,6 +4,6 @@ public enum AttackState {
     Mustering,
     Pathing,
     Debrief,
-    Fight
-
+    Fight,
+    None
 }

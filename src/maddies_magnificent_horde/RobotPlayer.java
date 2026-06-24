@@ -18,7 +18,8 @@ public class RobotPlayer {
     static final int CAT_WAYPOINT_DANGER_RADIUS = 4; // this one isn't lol it's just true
     static final int RAT_CHEESE_RETURN_THRESHOLD = 60; // this'll also probs change if I get to the point of tweaking stuff
     static final int CHEESE_SURVIVAL_BUFFER = 100;
-    static final int CHEESE_PROSPERITY_RATE = 100;
+    static final int CHEESE_PROSPERITY_RATE = 10;
+    static final int CIVILIAN_RAT_CAP = 20;
 
     public static final double CAT_WAYPOINT_COST = 5;
     public static final double CAT_COST = -1;
@@ -85,10 +86,8 @@ public class RobotPlayer {
 
 
     // Attack mode specific Properties
-        /// The ID of the current pack (if in Attack Mode).
-        private int pack_id; public int pack_id() {return this.pack_id;}
         /// The size of the current pack (if in Attack Mode).
-        private int pack_size; public int pack_size() {return this.pack_size;}
+        public int pack_size() {return this.known_pack_members().size();}
         /// The set of all known members of the current pack (if in Attack Mode).
         private HashSet<Integer> known_pack_members; public HashSet<Integer> known_pack_members() {return this.known_pack_members;}
         /// The location of the Target King (if in Attack Mode).
@@ -96,7 +95,7 @@ public class RobotPlayer {
         /// The ID of the Target King (if in Attack Mode).
         private int target_king_id; public int target_king_id() {return this.target_king_id;}
         /// The current Attack substate (if in Attack Mode).
-        private AttackState attack_state; public AttackState attack_state() {return attack_state;}
+        public AttackState attack_state; public AttackState attack_state() {return attack_state;}
         /// Whether or not the Rat is currently opted in to debrief. Only Some() immediately after a Rat dies.
         private Optional<Boolean> is_debriefing; public Optional<Boolean> is_debriefing() {return this.is_debriefing;}
 
@@ -125,6 +124,7 @@ public class RobotPlayer {
         this.is_king = rc.getType() == UnitType.RAT_KING;
         this.current_protocol = RobotProtocol.None;
         this.gather_state = GatherState.None;
+        this.attack_state = AttackState.None;
         this.clear_nav_target();
         this.rc = rc;
         this.pathfinder = new DStarLite();
@@ -138,6 +138,7 @@ public class RobotPlayer {
         this.known_walls = new HashSet<>();
         this.known_cheese = new HashSet<>();
         this.debug_log = new LinkedList<>();
+        this.known_pack_members = new HashSet<>();
         this.explore_terminus = Optional.empty();
         this.rng = new Random();
         this.cheese_recap = new int[100];
@@ -307,7 +308,6 @@ public class RobotPlayer {
         for (Communication message : this.queued_messages) {
             if (message.predicate_met(this.reference())) {
                 this.add_debug_info("Sending a message of type " + Integer.toBinaryString(message.message_id()));
-//                System.out.println("Sending Message: " + Integer.toBinaryString(message.package_message()) + " Encrypted: " + Integer.toBinaryString(message.render(this.reference())) + " Shared key: " + Integer.toBinaryString(this.shared_key()) + " Message ID: " + Integer.toBinaryString(message.message_id()));
                 this.rc.squeak(message.render(this.reference()));
                 if (message.terminus_met(this.reference())) {
                     this.add_debug_info("Removed " + Integer.toBinaryString(message.message_id()) + " from the queue");
@@ -413,6 +413,36 @@ public class RobotPlayer {
     /// Form a pack, hunt down enemy Kings, kill them, report back.
     // TODO: Add Tests
     private void attack() {
+        this.add_debug_info("Attack Mode");
+        this.add_debug_info("Pack Size: " + this.known_pack_members().size());
+        switch (this.attack_state()) {
+            case Mustering: {
+                if (this.pack_size() >= PACK_ATTACK_SIZE) {
+                    this.attack_state = AttackState.Pathing;
+                    this.queue_message(new RatPackShouldAttack(new MapLocation(0,0), this.id()));
+                    this.handle_outgoing_communication();
+                }
+                break;}
+            case Pathing: {
+                System.out.println("DRINKING KOOL-AID");
+                this.rc.setTimelineMarker("GROUP SUICIDE STARTS NOW", 255,50,50);
+                this.rc.disintegrate();
+                break;
+            }
+            case Debrief: {break;}
+            case Fight: {break;}
+            case None: {
+                this.attack_state = AttackState.Mustering;
+                this.set_nav_target(this.muster_point());
+//                this.join_pack(0);
+                this.queue_message(new HeyYouComeJoinMyRatPackSoThatWeCanGoAttack(this.id()));
+                break;
+            }
+        }
+    }
+
+    private MapLocation muster_point() {
+        return new MapLocation(this.king_loc().x - 3, this.king_loc().y - 3);
     }
 
     /// Churn out babies as fast as the movement cap will let you.
@@ -420,29 +450,37 @@ public class RobotPlayer {
     private void propagate() {
         int rats = this.rats_made();
         this.add_debug_info("Rats: " + (rats + 2) + " ± 2");
-        if (rats < 20) {
-            for (MapLocation i: this.king_spawn_locs()) {
-                if (this.rc.canBuildRat(i)) {
-                    try {
-                        this.rc.buildRat(i);
-                    } catch (GameActionException e) {throw new RuntimeException("Failed something definitely shown to be possible on turn" + this.rc.getRoundNum());}
-
-                    RobotProtocol new_protocol = this.rng.nextInt(3) == 0 ? RobotProtocol.Explore : RobotProtocol.Gather;
-                    try {
-                        this.queue_message(new NewRatProtocol(
-                                new_protocol,
-                                this.rc.senseRobotAtLocation(i).getID(),
-                                this.id
-                        ));
-                    } catch (GameActionException e) {throw new RuntimeException("Couldn't sense a robot at a location we KNOW it's in.");}
-                    break;
-                }
-            }
+        if (rats < CIVILIAN_RAT_CAP) {
+            RobotProtocol new_protocol = this.rng.nextInt(3) == 0 ? RobotProtocol.Explore : RobotProtocol.Gather;
+            build_rat(new_protocol);
         }
-        this.add_debug_info("Propagate Mode | " + this.global_cheese_rate() + " Cheese/t");
+        this.add_debug_info("Propagate Mode | " + this.global_cheese_rate() + " cheese per turn");
 
-        if (this.rc.getGlobalCheese() <= 2 * CHEESE_SURVIVAL_BUFFER && this.global_cheese_rate() >= CHEESE_PROSPERITY_RATE) {
+        if (
+                this.rc.getGlobalCheese() >= 2 * CHEESE_SURVIVAL_BUFFER &&
+                this.global_cheese_rate() >= CHEESE_PROSPERITY_RATE &&
+                !this.enemy_rat_kings().isEmpty()
+        ) {
             this.set_protocol(RobotProtocol.Conserve);
+        }
+    }
+
+    private void build_rat(RobotProtocol new_protocol) {
+        for (MapLocation i: this.king_spawn_locs()) {
+            if (this.rc.canBuildRat(i)) {
+                try {
+                    this.rc.buildRat(i);
+                } catch (GameActionException e) {throw new RuntimeException("Failed something definitely shown to be possible on turn" + this.rc.getRoundNum());}
+
+                try {
+                    this.queue_message(new NewRatProtocol(
+                            new_protocol,
+                            this.rc.senseRobotAtLocation(i).getID(),
+                            this.id
+                    ));
+                } catch (GameActionException e) {throw new RuntimeException("Couldn't sense a robot at a location we KNOW it's in.");}
+                break;
+            }
         }
     }
 
@@ -452,6 +490,10 @@ public class RobotPlayer {
         if (this.rc.getGlobalCheese() < 2 * CHEESE_SURVIVAL_BUFFER || this.global_cheese_rate() <= CHEESE_PROSPERITY_RATE) {
             this.set_protocol(RobotProtocol.Propagate);
         }
+        if (this.rats_made() < CIVILIAN_RAT_CAP + PACK_ATTACK_SIZE) {
+            build_rat(RobotProtocol.Attack);
+        }
+        this.add_debug_info("Conserve Mode | " + this.global_cheese_rate() + "Cheese/t");
     }
 
     /// Cover as much of the map as is possible, reporting any important discoveries.
@@ -691,14 +733,6 @@ public class RobotPlayer {
         this.terminus_messages.add(message);
     }
 
-    /// Sets the rat's pack {@link #pack_id}, and announces it.
-    /// @param pack_id the pack to join.
-    public void join_pack(int pack_id) {
-        this.queue_message( new WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack(this.pack_id, pack_id, this.id));
-        this.pack_id = pack_id;
-        this.clear_known_pack_members();
-    }
-
     /// Set's the rat's protocol {@link #current_protocol}.
     /// @param prescribed_protocol the new protocol.
     public void set_protocol(RobotProtocol prescribed_protocol) {
@@ -786,14 +820,15 @@ public class RobotPlayer {
                         this.rc.move(direction.get());
                     }
                 } catch (GameActionException e) {
-                    throw new RuntimeException(e);
+                    this.add_debug_info("Failed to move to " + this.position().add(direction.get()) + ". Race Condition?");
+                    System.out.println("Failed to move to " + this.position().add(direction.get()) + ". Race Condition?");
                 }
             }
             try {
                 this.rc.setIndicatorLine(this.position(), target, 0, 0, 255);
-                this.rc.setIndicatorDot(this.nav_target.get(), 0, 0, 255);
+                this.rc.setIndicatorDot(target, 0, 0, 255);
             } catch (GameActionException e) {
-                System.out.println("Couldn't render a line ;-;");
+                throw new RuntimeException("Couldn't make a line/point to " + target);
             }
         }
     }
