@@ -29,11 +29,9 @@ public int message_id(){return 7;}
             if (robot[0].current_protocol() != RobotProtocol.Attack || robot[0].attack_state() == AttackState.Mustering) {
                 robot[0].set_protocol(RobotProtocol.Attack);
                 robot[0].attack_state = AttackState.Pathing;
-//                robot[0].join_pack(0);
                 robot[0].add_pack_member(this.sender_id);
-                robot[0].set_target_king_loc(this.victim_pos);
-                robot[0].queue_message(this);
-
+                robot[0].set_nav_target(this.victim_pos);
+                robot[0].queue_message(new RatPackShouldAttack(this.victim_pos, robot[0].id()));
             }
         }
     }

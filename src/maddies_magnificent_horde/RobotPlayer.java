@@ -143,6 +143,7 @@ public class RobotPlayer {
         this.rng = new Random();
         this.cheese_recap = new int[100];
         this.explore_mode = ExploreMode.Exploring;
+        this.is_debriefing = Optional.empty();
         Arrays.fill(this.cheese_recap, this.rc.getGlobalCheese());
     }
 
@@ -417,30 +418,89 @@ public class RobotPlayer {
         this.add_debug_info("Pack Size: " + this.known_pack_members().size());
         switch (this.attack_state()) {
             case Mustering: {
+                this.add_debug_info("Mustering a pack");
                 if (this.pack_size() >= PACK_ATTACK_SIZE) {
                     this.attack_state = AttackState.Pathing;
-                    this.queue_message(new RatPackShouldAttack(new MapLocation(0,0), this.id()));
+                    MapLocation target = this.enemy_rat_kings().stream().findFirst().get();
+                    this.queue_message(new RatPackShouldAttack(target, this.id()));
+                    this.set_nav_target(target);
                     this.handle_outgoing_communication();
                 }
                 break;}
             case Pathing: {
-                System.out.println("DRINKING KOOL-AID");
-                this.rc.setTimelineMarker("GROUP SUICIDE STARTS NOW", 255,50,50);
-                this.rc.disintegrate();
+                this.add_debug_info("Running 4 tha king wit my homiess");
+                this.lash_out();
                 break;
             }
-            case Debrief: {break;}
-            case Fight: {break;}
+            case Debrief: {
+                this.add_debug_info("Debrief Mode");
+                if (this.is_debriefing().isPresent()) {
+                    if (this.is_debriefing().get()) {
+                        this.set_nav_target(this.king_loc());
+                    } else {
+                    }
+                }
+                break;
+            }
+
+            case Fight: {
+                this.add_debug_info("Fight Mode");
+                this.lash_out();
+                try {
+                    if (this.rc.canSenseLocation(this.nav_target().get())) {
+                        RobotInfo king = this.rc.senseRobotAtLocation(this.nav_target.get());
+                        if (king == null) {
+                            this.attack_state = AttackState.Debrief;
+                            this.remove_enemy_rat_king_dead(this.nav_target().get());
+                            this.queue_message(new RatPackVolunteerToGoBackInsteadOfAttack(0, this.id()));
+                        }
+                    }
+                } catch (GameActionException e) {
+                    throw new RuntimeException(e);
+                }
+                break;}
             case None: {
                 this.attack_state = AttackState.Mustering;
                 this.set_nav_target(this.muster_point());
-//                this.join_pack(0);
                 this.queue_message(new HeyYouComeJoinMyRatPackSoThatWeCanGoAttack(this.id()));
                 break;
             }
         }
     }
 
+    private void lash_out() {
+        try {
+            if (this.rc.canAttack(this.position().add(Direction.NORTH))) {
+                this.rc.attack(this.position().add(Direction.NORTH));
+            }
+            if (this.rc.canAttack(this.position().add(Direction.NORTHEAST))) {
+                this.rc.attack(this.position().add(Direction.NORTHEAST));
+            }
+            if (this.rc.canAttack(this.position().add(Direction.EAST))) {
+                this.rc.attack(this.position().add(Direction.EAST));
+            }
+            if (this.rc.canAttack(this.position().add(Direction.SOUTHEAST))) {
+                this.rc.attack(this.position().add(Direction.SOUTHEAST));
+            }
+            if (this.rc.canAttack(this.position().add(Direction.SOUTH))) {
+                this.rc.attack(this.position().add(Direction.SOUTH));
+            }
+            if (this.rc.canAttack(this.position().add(Direction.SOUTHWEST))) {
+                this.rc.attack(this.position().add(Direction.SOUTHWEST));
+            }
+            if (this.rc.canAttack(this.position().add(Direction.WEST))) {
+                this.rc.attack(this.position().add(Direction.WEST));
+            }
+            if (this.rc.canAttack(this.position().add(Direction.NORTHWEST))) {
+                this.rc.attack(this.position().add(Direction.NORTHWEST));
+            }
+            if (this.position().distanceSquaredTo(nav_target().get()) < 18) {
+                this.attack_state = AttackState.Fight;
+            }
+        } catch (GameActionException e) {
+            throw new RuntimeException(e);
+        }
+    }
     private MapLocation muster_point() {
         return new MapLocation(this.king_loc().x - 3, this.king_loc().y - 3);
     }
@@ -923,7 +983,6 @@ public class RobotPlayer {
             d_cheese += (this.rc.getGlobalCheese() - this.cheese_recap[(this.turn + d) % this.cheese_recap.length]) / (d + 1);
         }
         d_cheese /= this.cheese_recap.length;
-        this.add_debug_info("d(cheese)/dt = " + d_cheese + " per turn");
         // I'm not kidding for some reason battlecode's implementation of java can't do sum or average of an array. so.
         return d_cheese;
     }

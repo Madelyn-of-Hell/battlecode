@@ -28,7 +28,7 @@ public abstract class Communication {
             case 6 -> new RatPackGoingDark(decrypted_message, raw_message.getSenderID());
             case 7 -> new RatPackShouldAttack(decrypted_message, raw_message.getSenderID());
             case 8 -> new RatPackReassemble(decrypted_message, raw_message.getSenderID());
-            case 9 -> new WaowieYourRatPackIsSoBigIWannaComeWithYouToAttack(decrypted_message, raw_message.getSenderID());
+            // Waowie used to go here
             case 10 -> new HeyYouComeJoinMyRatPackSoThatWeCanGoAttack(decrypted_message, raw_message.getSenderID());
             case 11 -> new EnemyRatKingFound(decrypted_message, raw_message.getSenderID());
             case 12 -> new CheeseMineFound(decrypted_message, raw_message.getSenderID());
